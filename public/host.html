@@ -302,8 +302,14 @@ function boardView() {
   const R = S.rankings;
   let body = '';
   if (boardTab === 'age') {
-    body = `<div class="age-board">${S.ages.map((a, i) => `<div class="age-col age${i}"><h3>${a}</h3><ol class="rank-list">${
-      R.byAge[a].length ? R.byAge[a].slice(0, 5).map((p, j) => rankLi(p, j, false)).join('') : '<li class="empty">참가자 없음</li>'}</ol></div>`).join('')}</div>`;
+    // 윗줄: 나머지 연령대 / 아랫줄: 마지막 연령대(80대 이상)를 크게
+    const last = S.ages.length - 1;
+    const big = S.ages[last];
+    body = `<div class="age-board">${S.ages.slice(0, last).map((a, i) => `<div class="age-col age${i}"><h3>${a}</h3><ol class="rank-list">${
+      R.byAge[a].length ? R.byAge[a].slice(0, 5).map((p, j) => rankLi(p, j, false)).join('') : '<li class="empty">참가자 없음</li>'}</ol></div>`).join('')}</div>
+      <div class="age-col big-age age${last}"><h3>👑 ${big}</h3>
+        <ol class="big-rank">${R.byAge[big].length ? R.byAge[big].slice(0, 5).map((p, j) => `<li><span class="rk">${medal(j)}</span><span class="nm">${esc(p.name)}</span><span class="sc">${p.score}점</span></li>`).join('')
+          : '<li class="empty">참가자 없음</li>'}</ol></div>`;
   } else {
     body = `<div class="card wide-board"><ol class="rank-list">${R.overall.map((p, i) => rankLi(p, i)).join('') || '<li class="empty">참가자 없음</li>'}</ol></div>`;
   }
