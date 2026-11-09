@@ -2,7 +2,7 @@
 
 :root {
   --c0: #ff5c7a; --c1: #3d8bff; --c2: #ffb11f; --c3: #22c07a;
-  --a0: #7c5cff; --a1: #ff7eb6; --a2: #22b8cf; --a3: #f59f00; --a4: #51cf66;
+  --a0: #7c5cff; --a1: #ff7eb6; --a2: #22b8cf; --a3: #f59f00; --a4: #51cf66; --a5: #339af0;
   --ink: #2b2550; --sub: #7a7699; --card: #fff; --bg1: #f3edff; --bg2: #e3fbf3;
 }
 * { box-sizing: border-box; }
@@ -33,7 +33,7 @@ input, select { font-family: inherit; }
 .opt.c1, .choice.c1 { background: var(--c1); }
 .opt.c2, .choice.c2 { background: var(--c2); }
 .opt.c3, .choice.c3 { background: var(--c3); }
-.age0 { --age: var(--a0); } .age1 { --age: var(--a1); } .age2 { --age: var(--a2); } .age3 { --age: var(--a3); } .age4 { --age: var(--a4); }
+.age0 { --age: var(--a0); } .age1 { --age: var(--a1); } .age2 { --age: var(--a2); } .age3 { --age: var(--a3); } .age4 { --age: var(--a4); } .age5 { --age: var(--a5); }
 .age-tag { display: inline-block; padding: 2px 10px; border-radius: 999px; color: #fff; background: var(--age, #999); font-size: .8em; }
 
 /* ================= 진행자 화면 ================= */
@@ -49,7 +49,7 @@ main.view { padding: 8px 28px 28px; }
 .qr-card p { color: var(--sub); font-size: 20px; margin: 4px 0 0; }
 .lobby h2 { font-size: 36px; margin: 0 0 14px; }
 .lobby h3 { font-size: 24px; margin: 22px 0 10px; color: var(--sub); }
-.age-chips { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+.age-chips { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
 .age-chip { border-radius: 20px; padding: 12px; text-align: center; background: var(--age); color: #fff; }
 .age-chip span { display: block; font-size: 20px; }
 .age-chip b { font-size: 38px; font-weight: normal; }
@@ -95,7 +95,7 @@ main.view { padding: 8px 28px 28px; }
 .winner .lbl { font-size: 24px; color: #c76b00; }
 .winner .who { font-size: 54px; margin: 6px 0; animation: pop .5s; }
 .winner .meta { font-size: 22px; color: var(--sub); }
-.age-best { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+.age-best { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
 .age-best .ab { border-radius: 18px; padding: 12px; color: #fff; background: var(--age); text-align: center; }
 .age-best .ab .t { font-size: 18px; opacity: .9; }
 .age-best .ab .n { font-size: 26px; margin: 4px 0; }
@@ -104,7 +104,7 @@ main.view { padding: 8px 28px 28px; }
 .board-tabs { display: flex; gap: 10px; justify-content: center; margin-bottom: 18px; }
 .board-tabs .btn.on { background: #6d4cff; color: #fff; }
 .board-title { text-align: center; font-size: 46px; margin: 0 0 16px; }
-.age-board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+.age-board { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
 .age-col { background: #fff; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 30px rgba(80,60,160,.12); }
 .age-col h3 { margin: 0; padding: 14px; text-align: center; color: #fff; background: var(--age); font-size: 26px; font-weight: normal; }
 .rank-list { list-style: none; margin: 0; padding: 10px; }
@@ -137,7 +137,7 @@ dialog::backdrop { background: rgba(40, 30, 80, .45); }
 
 @media (max-width: 1000px) {
   .lobby, .reveal-grid, .live-row { grid-template-columns: 1fr; }
-  .age-board, .age-best, .age-chips { grid-template-columns: repeat(2, 1fr); }
+  .age-board, .age-best, .age-chips { grid-template-columns: repeat(3, 1fr); }
 }
 
 /* ================= 참가자 화면 ================= */
@@ -213,3 +213,8 @@ body.player #send { position: sticky; bottom: 12px; z-index: 5; }
 .net.wait { background: #fff4c2; }
 .net.warn { background: #ffe3e3; }
 .net-banner { position: fixed; top: 0; left: 0; right: 0; background: #ff6b6b; color: #fff; text-align: center; padding: 8px; font-size: 17px; z-index: 50; }
+/* 연령대 6칸: 이름이 줄바꿈되지 않게 */
+.age-board .rank-list { padding: 8px 6px; }
+.age-board .rank-list li { font-size: 18px; gap: 6px; padding: 10px 4px; }
+.age-board .rank-list .rk { width: 28px; font-size: 20px; }
+.rank-list .nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }

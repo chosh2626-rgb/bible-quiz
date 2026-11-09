@@ -14,7 +14,7 @@
 
 <script>
 const SHAPES = ['▲', '◆', '●', '■'];
-const AGES = ['40대 미만', '50대', '60대', '70대', '80대 이상'];
+const AGES = ['30대 미만', '40대', '50대', '60대', '70대', '80대 이상'];
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const blanks = (t) => esc(t).replace(/\(\s*\)/g, '<span class="blank">?</span>');

@@ -9,7 +9,7 @@ const crypto = require('crypto');
 const { startTunnel } = require('./tunnel');
 
 const PORT = Number(process.env.PORT) || 3000;
-const AGES = ['40대 미만', '50대', '60대', '70대', '80대 이상'];
+const AGES = ['30대 미만', '40대', '50대', '60대', '70대', '80대 이상'];
 const Q_FILE = path.join(__dirname, 'questions.json');
 const PUB = path.join(__dirname, 'public');
 // 인터넷 서버(Render 등)에서 실행 중인지
