@@ -26,11 +26,11 @@
   <div class="dlg help">
     <div class="row"><h2>❓ 이렇게 진행하세요</h2><button class="btn" style="margin-left:auto" onclick="help.close()">닫기 ✕</button></div>
     <ol class="steps">
-      <li><b>참가자 들어오기</b><br>처음 화면의 QR코드를 휴대폰 카메라로 찍게 하세요.<br>휴대폰에서 <u>이름 → 모둠 → 나이대</u>를 고르고 [입장하기]를 누르면 화면에 이름이 나타나요.</li>
+      <li><b>참가자 들어오기</b><br>처음 화면의 QR코드를 휴대폰 카메라로 찍게 하세요.<br>휴대폰에서 <u>이름 → 나이대</u>를 고르고 [입장하기]를 누르면 화면에 이름이 나타나요.</li>
       <li><b>문제 내기</b><br>🎲 <u>[무작위 문제]</u>를 누르거나, 목록에서 문제를 골라 <u>[▶ 이 문제 시작]</u>을 누르세요.</li>
       <li><b>답 고르기</b><br>참가자는 휴대폰에서 보기를 하나 누르고 <u>[제출하기]</u>를 누르면 끝!<br>화면에 제출한 순서가 바로 보여요.</li>
       <li><b>정답 공개</b><br>시간이 다 되거나 모두 제출하면 자동으로 정답이 나와요.<br>기다리기 싫으면 <u>[마감하고 정답 공개]</u>를 누르세요.</li>
-      <li><b>다음 문제 / 순위</b><br><u>[🎲 다음 문제]</u>로 계속 진행하고, 중간중간 <u>[🏆 순위 보기]</u>로 연령대별·모둠별 순위를 보여 주세요.</li>
+      <li><b>다음 문제 / 순위</b><br><u>[🎲 다음 문제]</u>로 계속 진행하고, 중간중간 <u>[🏆 순위 보기]</u>로 연령대별 순위를 보여 주세요.</li>
       <li><b>새 대회 시작</b><br>오른쪽 위 <u>[♻️ 초기화]</u>를 누르면 점수가 0점이 돼요.</li>
     </ol>
     <p class="tip">💡 QR코드 아래에 <b>✅ 데이터·와이파이 모두 접속</b>이 보이면 휴대폰 데이터(LTE·5G)로도 들어올 수 있어요.<br>⏳ 표시가 보이면 잠시 기다리세요. QR코드가 자동으로 바뀌어요.</p>
@@ -207,8 +207,8 @@ function lobbyView() {
     <div class="card">
       <h2>🙋 참가자 <b>${S.playerCount}</b>명</h2>
       <div class="age-chips">${S.ages.map((a, i) => `<div class="age-chip age${i}"><span>${a}</span><b>${S.ageCounts[a]}</b></div>`).join('')}</div>
-      <h3>모둠별 참가자</h3>
-      <div class="team-list">${S.roster.length ? S.roster.map((t) => `<div class="team-box"><h4>${esc(t.team)} <small>(${t.names.length}명)</small></h4>${t.names.map((n) => `<span class="nm">${esc(n.name)}</span>`).join('')}</div>`).join('') : '<span class="empty">아직 들어온 사람이 없어요. 기다리는 중… ⏳</span>'}</div>
+      <h3>연령대별 참가자</h3>
+      <div class="team-list">${S.playerCount ? S.roster.filter((g) => g.names.length).map((g) => `<div class="team-box age${ageIdx(g.age)}"><h4>${esc(g.age)} <small>(${g.names.length}명)</small></h4>${g.names.map((n) => `<span class="nm">${esc(n)}</span>`).join('')}</div>`).join('') : '<span class="empty">아직 들어온 사람이 없어요. 기다리는 중… ⏳</span>'}</div>
       <h3>문제 내기</h3>
       ${questionPicker()}
     </div>
@@ -241,7 +241,7 @@ function optsHtml(reveal) {
 
 function fastItem(s, i, reveal) {
   return `<li class="${reveal && !s.correct ? 'wrong' : ''}"><span class="ord">${i + 1}</span>
-    <span>${esc(s.name)} <small>${esc(s.team)}</small> ${ageTag(s.age)}</span>
+    <span>${esc(s.name)} ${ageTag(s.age)}</span>
     <span class="tm">${reveal ? (s.correct ? '⭕' : '❌') + ' ' : ''}${sec(s.elapsed)}</span></li>`;
 }
 
@@ -275,7 +275,7 @@ function revealView() {
     <div class="reveal-grid">
       <div class="card winner">
         <div class="lbl">⚡ 가장 빠른 정답자</div>
-        ${w ? `<div class="who">🏅 ${esc(w.name)}</div><div class="meta">${esc(w.team)} · ${ageTag(w.age)} · ${sec(w.elapsed)} · +${w.points}점</div>`
+        ${w ? `<div class="who">🏅 ${esc(w.name)}</div><div class="meta">${ageTag(w.age)} · ${sec(w.elapsed)} · +${w.points}점</div>`
             : '<div class="who">정답자가 없어요 😢</div>'}
         <ol class="fast-list" style="margin-top:14px;text-align:left">${S.fastestCorrect.slice(1, 6).map((s, i) => fastItem(s, i + 1, true)).join('')}</ol>
       </div>
@@ -283,7 +283,7 @@ function revealView() {
         <h3 style="margin:0 0 12px;font-size:26px">👑 연령대별 가장 빠른 정답</h3>
         <div class="age-best">${S.ages.map((a, i) => {
           const s = S.ageFastest[a];
-          return `<div class="ab age${i}"><div class="t">${a}</div>${s ? `<div class="n">${esc(s.name)}</div><div class="s">${esc(s.team)} · ${sec(s.elapsed)}</div>` : '<div class="n">-</div><div class="s">정답자 없음</div>'}</div>`;
+          return `<div class="ab age${i}"><div class="t">${a}</div>${s ? `<div class="n">${esc(s.name)}</div><div class="s">${sec(s.elapsed)}</div>` : '<div class="n">-</div><div class="s">정답자 없음</div>'}</div>`;
         }).join('')}</div>
       </div>
     </div>
@@ -295,7 +295,7 @@ function revealView() {
 }
 
 function rankLi(p, i, showAge = true) {
-  return `<li><span class="rk">${medal(i)}</span><span class="nm">${esc(p.name)}<small>${esc(p.team)} ${showAge ? '· ' + esc(p.age) : ''}</small></span><span class="sc">${p.score}점</span></li>`;
+  return `<li><span class="rk">${medal(i)}</span><span class="nm">${esc(p.name)}${showAge ? `<small>${esc(p.age)}</small>` : ''}</span><span class="sc">${p.score}점</span></li>`;
 }
 
 function boardView() {
@@ -304,17 +304,12 @@ function boardView() {
   if (boardTab === 'age') {
     body = `<div class="age-board">${S.ages.map((a, i) => `<div class="age-col age${i}"><h3>${a}</h3><ol class="rank-list">${
       R.byAge[a].length ? R.byAge[a].slice(0, 5).map((p, j) => rankLi(p, j, false)).join('') : '<li class="empty">참가자 없음</li>'}</ol></div>`).join('')}</div>`;
-  } else if (boardTab === 'team') {
-    const max = Math.max(1, ...R.teams.map((t) => t.score));
-    body = `<div class="card wide-board"><ol class="rank-list">${R.teams.map((t, i) => `<li><span class="rk">${medal(i)}</span>
-      <span class="nm" style="flex:1">${esc(t.team)} <small>${t.members}명 · 정답 ${t.correct}개</small><div class="bar" style="width:${Math.max(3, t.score / max * 100)}%"></div></span>
-      <span class="sc">${t.score}점</span></li>`).join('') || '<li class="empty">참가자 없음</li>'}</ol></div>`;
   } else {
     body = `<div class="card wide-board"><ol class="rank-list">${R.overall.map((p, i) => rankLi(p, i)).join('') || '<li class="empty">참가자 없음</li>'}</ol></div>`;
   }
   const tab = (k, label) => `<button class="btn ${boardTab === k ? 'on' : ''}" onclick="boardTab='${k}';render()">${label}</button>`;
-  return `<h2 class="board-title">🏆 ${boardTab === 'age' ? '연령대별 순위' : boardTab === 'team' ? '모둠별 순위' : '전체 순위'}</h2>
-    <div class="board-tabs">${tab('age', '👵 연령대별')}${tab('team', '👥 모둠별')}${tab('all', '🌟 전체')}</div>
+  return `<h2 class="board-title">🏆 ${boardTab === 'age' ? '연령대별 순위' : '전체 순위'}</h2>
+    <div class="board-tabs">${tab('age', '👵 연령대별')}${tab('all', '🌟 전체')}</div>
     ${body}
     <div class="controls" style="margin-top:20px">
       ${S.phase !== 'lobby' ? `<button class="btn big" onclick="override=null;render()">↩ 문제 화면으로</button>` : ''}

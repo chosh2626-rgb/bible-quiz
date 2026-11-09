@@ -21,7 +21,7 @@ const HOST_TOKEN = HOST_PASSWORD ? crypto.createHash('sha256').update('quiz-host
 let questions = loadQuestions();
 // 인터넷 주소(휴대폰 데이터 접속용) 상태
 const net = { publicUrl: '', status: CLOUD ? 'cloud' : process.env.TUNNEL === '0' ? 'off' : 'starting', message: '' };
-const players = new Map(); // pid -> { id, name, team, age, score, correct, totalTime, joinedAt }
+const players = new Map(); // pid -> { id, name, age, score, correct, totalTime, joinedAt }
 const clients = new Set(); // SSE 연결 { res, pid, role }
 const game = {
   phase: 'lobby', // lobby | question | reveal
@@ -112,11 +112,11 @@ function resetGame(clearPlayers) {
 // ---------------- 순위 계산 ----------------
 const cmp = (a, b) =>
   b.score - a.score || b.correct - a.correct || a.totalTime - b.totalTime || a.joinedAt - b.joinedAt;
-const pubPlayer = (p) => ({ name: p.name, team: p.team, age: p.age, score: p.score, correct: p.correct });
+const pubPlayer = (p) => ({ name: p.name, age: p.age, score: p.score, correct: p.correct });
 const pubSub = (s, showAnswer) => {
-  const p = players.get(s.pid) || { name: '(나감)', team: '-', age: '-' };
+  const p = players.get(s.pid) || { name: '(나감)', age: '-' };
   return {
-    name: p.name, team: p.team, age: p.age, elapsed: s.elapsed,
+    name: p.name, age: p.age, elapsed: s.elapsed,
     choice: showAnswer ? s.choice : null,
     correct: showAnswer ? s.correct : null,
     points: showAnswer ? s.points : null,
@@ -135,19 +135,6 @@ function buildState() {
     rank.set(p.id, { rank: i + 1, ageRank: byAge[p.age].length });
   });
 
-  // 모둠 순위 (모둠원 점수 합계)
-  const teamMap = new Map();
-  for (const p of list) {
-    const t = teamMap.get(p.team) || { team: p.team, members: 0, score: 0, correct: 0 };
-    t.members += 1; t.score += p.score; t.correct += p.correct;
-    teamMap.set(p.team, t);
-  }
-  const teams = [...teamMap.values()].sort((a, b) => b.score - a.score || b.correct - a.correct);
-  const teamRank = new Map(teams.map((t, i) => [t.team, i + 1]));
-
-  const roster = [...teamMap.keys()]
-    .sort((a, b) => String(a).localeCompare(String(b), 'ko', { numeric: true }))
-    .map((team) => ({ team, names: list.filter((p) => p.team === team).map((p) => ({ name: p.name, age: p.age })) }));
 
   const isReveal = game.phase === 'reveal';
   const subs = game.submissions; // 제출 순서(빠른 순)
@@ -169,12 +156,12 @@ function buildState() {
     submitCount: subs.length,
     ages: AGES,
     ageCounts,
-    roster,
+    // 연령대별 참가자 명단 (들어온 순서)
+    roster: AGES.map((a) => ({ age: a, names: [...players.values()].filter((p) => p.age === a).map((p) => p.name) })),
     fastest: subs.slice(0, 10).map((s) => pubSub(s, isReveal)),
     rankings: {
       overall: list.slice(0, 10).map(pubPlayer),
       byAge: Object.fromEntries(AGES.map((a) => [a, byAge[a].slice(0, 10).map(pubPlayer)])),
-      teams,
     },
   };
   if (isReveal && game.q) {
@@ -188,7 +175,7 @@ function buildState() {
       })
     );
   }
-  return { st, rank, teamRank };
+  return { st, rank };
 }
 
 function meFor(pid, ctx) {
@@ -198,9 +185,9 @@ function meFor(pid, ctx) {
   const s = game.submissions[idx];
   const isReveal = game.phase === 'reveal';
   return {
-    name: p.name, team: p.team, age: p.age, score: p.score, correct: p.correct,
+    name: p.name, age: p.age, score: p.score, correct: p.correct,
     rank: ctx.rank.get(pid)?.rank, ageRank: ctx.rank.get(pid)?.ageRank,
-    ageTotal: ctx.st.ageCounts[p.age], teamRank: ctx.teamRank.get(p.team), teamTotal: ctx.st.rankings.teams.length,
+    ageTotal: ctx.st.ageCounts[p.age],
     sub: s
       ? { choice: s.choice, order: idx + 1, elapsed: s.elapsed, correct: isReveal ? s.correct : null, points: isReveal ? s.points : null }
       : null,
@@ -317,10 +304,9 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/join' && req.method === 'POST') {
       const b = await readBody(req);
       const name = String(b.name || '').trim().slice(0, 20);
-      const team = String(b.team || '').trim().slice(0, 20);
-      if (!name || !team || !AGES.includes(b.age)) return json(res, 400, { error: '이름, 모둠, 연령대를 모두 선택해 주세요.' });
+      if (!name || !AGES.includes(b.age)) return json(res, 400, { error: '이름과 연령대를 모두 선택해 주세요.' });
       const id = crypto.randomUUID();
-      players.set(id, { id, name, team, age: b.age, score: 0, correct: 0, totalTime: 0, joinedAt: Date.now() });
+      players.set(id, { id, name, age: b.age, score: 0, correct: 0, totalTime: 0, joinedAt: Date.now() });
       broadcast();
       return json(res, 200, { id });
     }

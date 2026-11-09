@@ -55,7 +55,7 @@ main.view { padding: 8px 28px 28px; }
 .age-chip b { font-size: 38px; font-weight: normal; }
 .team-list { display: flex; flex-wrap: wrap; gap: 12px; max-height: 38vh; overflow: auto; }
 .team-box { background: #f6f3ff; border-radius: 18px; padding: 10px 14px; min-width: 150px; }
-.team-box h4 { margin: 0 0 6px; font-size: 22px; font-weight: normal; color: #5b3fd6; }
+.team-box h4 { margin: 0 0 6px; font-size: 22px; font-weight: normal; color: var(--age, #5b3fd6); }
 .team-box .nm { display: inline-block; font-size: 18px; margin: 2px 6px 2px 0; animation: pop .35s; }
 .start-row { display: flex; gap: 12px; margin-top: 22px; align-items: center; flex-wrap: wrap; }
 .start-row select { font-size: 22px; padding: 12px; border-radius: 14px; border: 2px solid #ddd5ff; max-width: 100%; }

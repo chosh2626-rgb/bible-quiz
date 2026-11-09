@@ -15,7 +15,6 @@
 <script>
 const SHAPES = ['▲', '◆', '●', '■'];
 const AGES = ['40대 미만', '50대', '60대', '70대', '80대 이상'];
-const TEAMS = Array.from({ length: 12 }, (_, i) => `${i + 1}모둠`);
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const blanks = (t) => esc(t).replace(/\(\s*\)/g, '<span class="blank">?</span>');
@@ -30,13 +29,11 @@ let S = null, offset = 0, es = null, sig = '', selected = null, sending = false;
 function showJoin(msg = '') {
   sig = 'join';
   stopConn();
-  const f = { name: profile.name || '', team: profile.team || '', age: profile.age || '' };
+  const f = { name: profile.name || '', age: profile.age || '' };
   $('#app').innerHTML = `
     <div class="p-card"><h2>① 이름을 써 주세요</h2>
       <input class="p-input" id="name" maxlength="20" placeholder="예) 홍길동" value="${esc(f.name)}"></div>
-    <div class="p-card"><h2>② 우리 모둠은?</h2>
-      <div class="pick-grid" id="teams">${TEAMS.map((t) => `<button class="pick ${t === f.team ? 'on' : ''}" data-v="${t}">${t}</button>`).join('')}</div></div>
-    <div class="p-card"><h2>③ 나이대를 골라 주세요</h2>
+    <div class="p-card"><h2>② 나이대를 골라 주세요</h2>
       <div class="pick-grid ages" id="ages">${AGES.map((a, i) => `<button class="pick age${i} ${a === f.age ? 'on' : ''}" data-v="${a}">${a}</button>`).join('')}</div></div>
     <div class="err" id="err">${esc(msg)}</div>
     <button class="p-btn" id="go">입장하기 🚀</button>`;
@@ -45,11 +42,10 @@ function showJoin(msg = '') {
     f[key] = b.dataset.v;
     $(id).querySelectorAll('.pick').forEach((x) => x.classList.toggle('on', x === b));
   };
-  pickGroup('#teams', 'team'); pickGroup('#ages', 'age');
+  pickGroup('#ages', 'age');
   $('#go').onclick = async () => {
     f.name = $('#name').value.trim();
     if (!f.name) return ($('#err').textContent = '이름을 써 주세요.');
-    if (!f.team) return ($('#err').textContent = '모둠을 골라 주세요.');
     if (!f.age) return ($('#err').textContent = '나이대를 골라 주세요.');
     $('#go').disabled = true;
     try {
@@ -112,7 +108,7 @@ function netBanner(show) {
 document.addEventListener('visibilitychange', () => { if (!document.hidden && pid) connect(); }); // 화면을 다시 켜면 바로 다시 연결
 
 window.leave = async () => {
-  if (!confirm('이름·모둠·나이대를 바꿔서 다시 입장할까요?\n(지금까지 점수는 사라져요)')) return;
+  if (!confirm('이름·나이대를 바꿔서 다시 입장할까요?\n(지금까지 점수는 사라져요)')) return;
   await post('/api/leave', { pid }).catch(() => {});
   localStorage.removeItem('quiz_pid'); pid = null;
   showJoin();
@@ -121,14 +117,13 @@ window.leave = async () => {
 // ---------- 화면 ----------
 function meBar() {
   const m = S.me;
-  return `<div class="me-bar"><b>${esc(m.name)}</b> · ${esc(m.team)} · ${ageTag(m.age)} · <span>⭐ ${m.score}점</span></div>`;
+  return `<div class="me-bar"><b>${esc(m.name)}</b> · ${ageTag(m.age)} · <span>⭐ ${m.score}점</span></div>`;
 }
 function stats() {
   const m = S.me;
-  return `<div class="stat-row">
+  return `<div class="stat-row" style="grid-template-columns:1fr 1fr">
     <div><b>${m.ageRank}위</b><span>${esc(m.age)} (${m.ageTotal}명 중)</span></div>
-    <div><b>${m.rank}위</b><span>전체 (${S.playerCount}명 중)</span></div>
-    <div><b>${m.teamRank}위</b><span>${esc(m.team)} 순위 (${m.teamTotal}개 모둠 중)</span></div></div>`;
+    <div><b>${m.rank}위</b><span>전체 (${S.playerCount}명 중)</span></div></div>`;
 }
 
 function render() {
@@ -170,7 +165,7 @@ function render() {
       <p>화면에 문제가 나오면<br>여기에도 바로 나타나요.</p>
       <p class="p-sub">함께하는 사람 ${S.playerCount}명</p>
       ${m.score ? stats() : ''}
-      <button class="link-btn" onclick="leave()">이름·모둠·나이대 바꾸기</button></div>`;
+      <button class="link-btn" onclick="leave()">이름·나이대 바꾸기</button></div>`;
   }
   if (key === sig) return; // 같은 화면이면 다시 그리지 않음 (선택 유지)
   sig = key;
