@@ -252,9 +252,17 @@ function cookie(req, name) {
   const m = String(req.headers.cookie || '').match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
   return m ? m[1] : '';
 }
+// 서버가 켜질 때마다 바뀌는 번호. 화면 파일 주소 뒤에 붙여서
+// 브라우저가 예전 디자인(style.css)을 계속 쓰지 않고 항상 새 파일을 받게 함
+const BUILD = Date.now().toString(36);
 function sendFile(res, full) {
   const ext = path.extname(full);
-  res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': ext === '.js' && full.endsWith('qrcode.js') ? 'public, max-age=86400' : 'no-cache' });
+  if (ext === '.html') {
+    const html = fs.readFileSync(full, 'utf8').replace(/(href|src)="\/(style\.css|qrcode\.js)"/g, `$1="/$2?v=${BUILD}"`);
+    res.writeHead(200, { 'Content-Type': MIME[ext], 'Cache-Control': 'no-cache, no-store, must-revalidate' });
+    return res.end(html);
+  }
+  res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': 'public, max-age=31536000, immutable' });
   fs.createReadStream(full).pipe(res);
 }
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon' };

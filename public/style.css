@@ -232,7 +232,7 @@ body.player #send { position: sticky; bottom: 12px; z-index: 5; }
 .big-rank .rk { font-size: 44px; line-height: 1; }
 .big-rank .nm { font-size: clamp(28px, 3vw, 44px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .big-rank .sc { font-size: 26px; color: #1c7ed6; }
-.big-rank .empty { grid-column: 1 / -1; background: none; font-size: 24px; }
+.big-rank li.empty { grid-column: 1 / -1; background: none; font-size: 24px; color: var(--sub); }
 @media (max-width: 1000px) { .age-board { grid-template-columns: repeat(3, 1fr); } .big-rank { grid-template-columns: repeat(3, 1fr); } }
 /* 대기실: 연령대별 6칸 기둥 (80대도 항상 보이게) */
 .age-cols { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
