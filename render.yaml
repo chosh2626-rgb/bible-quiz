@@ -1,0 +1,14 @@
+# Render(render.com) 무료 인터넷 서버에 올리는 설정 파일
+services:
+  - type: web
+    name: bible-quiz
+    runtime: node
+    plan: free
+    buildCommand: echo "준비 완료"
+    startCommand: node server.js
+    healthCheckPath: /api/info
+    envVars:
+      - key: HOST_PASSWORD   # 진행자 비밀번호 (만들 때 직접 입력)
+        sync: false
+      - key: CLOUD
+        value: "1"

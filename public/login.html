@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>진행자 로그인 · 성경 퀴즈 대회</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body class="player">
+<div class="p-wrap" style="max-width:460px;padding-top:12vh">
+  <div class="p-brand">🧚 성경 퀴즈 대회</div>
+  <div class="p-card">
+    <h2>🔒 진행자 로그인</h2>
+    <p class="p-sub" style="margin-top:0">진행자 화면은 비밀번호를 아는 사람만 열 수 있어요.</p>
+    <input class="p-input" id="pw" type="password" placeholder="진행자 비밀번호" autofocus>
+    <div class="err" id="err"></div>
+    <button class="p-btn" id="go">들어가기</button>
+  </div>
+  <p class="center p-sub">참가자라면 <a href="/">여기</a>를 눌러 주세요.</p>
+</div>
+<script>
+const go = async () => {
+  const r = await fetch('/api/host/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: document.getElementById('pw').value }) }).then((r) => r.json()).catch(() => ({ error: '연결이 안 돼요. 다시 눌러 주세요.' }));
+  if (r.ok) location.href = '/host'; else document.getElementById('err').textContent = r.error;
+};
+document.getElementById('go').onclick = go;
+document.getElementById('pw').onkeydown = (e) => { if (e.key === 'Enter') go(); };
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "name": "group-quiz",
+  "version": "1.0.0",
+  "description": "모둠·연령대별 실시간 퀴즈 대회",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" }
+}

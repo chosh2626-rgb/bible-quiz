@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>성경 퀴즈 대회 · 진행자 화면</title>
+<link rel="stylesheet" href="/style.css">
+<script src="/qrcode.js"></script>
+</head>
+<body class="host">
+<header class="topbar">
+  <div class="logo">🧚 성경 퀴즈 대회</div>
+  <span id="playerCount" class="pill">참가 0명</span>
+  <div class="top-actions">
+    <button class="btn ghost" id="btnHelp">❓ 사용법</button>
+    <button class="btn ghost" id="btnLobby">🏠 처음 화면(QR)</button>
+    <button class="btn ghost" id="btnBoard">🏆 순위</button>
+    <button class="btn ghost" id="btnManage">📝 문제 관리</button>
+    <button class="btn ghost" id="btnReset">♻️ 초기화</button>
+  </div>
+</header>
+<main class="view" id="view"></main>
+
+<!-- 사용법 -->
+<dialog id="help">
+  <div class="dlg help">
+    <div class="row"><h2>❓ 이렇게 진행하세요</h2><button class="btn" style="margin-left:auto" onclick="help.close()">닫기 ✕</button></div>
+    <ol class="steps">
+      <li><b>참가자 들어오기</b><br>처음 화면의 QR코드를 휴대폰 카메라로 찍게 하세요.<br>휴대폰에서 <u>이름 → 모둠 → 나이대</u>를 고르고 [입장하기]를 누르면 화면에 이름이 나타나요.</li>
+      <li><b>문제 내기</b><br>🎲 <u>[무작위 문제]</u>를 누르거나, 목록에서 문제를 골라 <u>[▶ 이 문제 시작]</u>을 누르세요.</li>
+      <li><b>답 고르기</b><br>참가자는 휴대폰에서 보기를 하나 누르고 <u>[제출하기]</u>를 누르면 끝!<br>화면에 제출한 순서가 바로 보여요.</li>
+      <li><b>정답 공개</b><br>시간이 다 되거나 모두 제출하면 자동으로 정답이 나와요.<br>기다리기 싫으면 <u>[마감하고 정답 공개]</u>를 누르세요.</li>
+      <li><b>다음 문제 / 순위</b><br><u>[🎲 다음 문제]</u>로 계속 진행하고, 중간중간 <u>[🏆 순위 보기]</u>로 연령대별·모둠별 순위를 보여 주세요.</li>
+      <li><b>새 대회 시작</b><br>오른쪽 위 <u>[♻️ 초기화]</u>를 누르면 점수가 0점이 돼요.</li>
+    </ol>
+    <p class="tip">💡 QR코드 아래에 <b>✅ 데이터·와이파이 모두 접속</b>이 보이면 휴대폰 데이터(LTE·5G)로도 들어올 수 있어요.<br>⏳ 표시가 보이면 잠시 기다리세요. QR코드가 자동으로 바뀌어요.</p>
+  </div>
+</dialog>
+
+<!-- 문제 관리 창 -->
+<dialog id="manage">
+  <div class="dlg">
+    <div class="row"><h2>📝 문제 관리 <small class="p-sub" id="qCount"></small></h2><button class="btn" style="margin-left:auto" onclick="manage.close()">닫기 ✕</button></div>
+    <div class="row" style="margin-bottom:10px">
+      <button class="btn" id="qExport">💾 문제 파일로 내려받기</button>
+      <label class="btn" style="cursor:pointer">📂 문제 파일 불러오기<input type="file" id="qImport" accept=".json,application/json" hidden></label>
+      <span class="p-sub" style="font-size:15px">인터넷 서버는 다시 켜지면 고친 문제가 처음으로 돌아가요. 고친 뒤엔 꼭 내려받아 두세요.</span>
+    </div>
+    <div class="q-rows" id="qRows"></div>
+    <form class="q-form" id="qForm" onsubmit="return false">
+      <b id="formTitle">➕ 새 문제 추가</b>
+      <label>문제 <input type="text" id="fText" placeholder="예) 태초에 ( )이 계시니라   ← 빈칸은 ( ) 로 쓰세요"></label>
+      <div class="row">
+        <label>구분
+          <select id="fGroup"><option>구약</option><option>신약</option><option value="">기타</option></select>
+        </label>
+        <label>성경(책) <input type="text" id="fBook" placeholder="예) 요한복음" style="width:150px"></label>
+        <label>출처 <input type="text" id="fRef" placeholder="예) 요 1:1" style="width:150px"></label>
+      </div>
+      <div class="row">
+        <label>형식
+          <select id="fType">
+            <option value="4">4지선다</option>
+            <option value="3">3지선다</option>
+            <option value="ox">O / X</option>
+          </select>
+        </label>
+        <label>제한 시간(초) <input type="number" id="fTime" value="30" min="5" max="300" style="width:110px"></label>
+      </div>
+      <div class="opt-inputs" id="fOpts"></div>
+      <p class="p-sub" style="margin:0">● 동그라미를 눌러 정답을 표시하세요</p>
+      <div class="row">
+        <button class="btn primary" id="fSave">저장</button>
+        <button class="btn" id="fCancel">새로 쓰기</button>
+        <span id="fMsg" class="p-sub"></span>
+      </div>
+    </form>
+  </div>
+</dialog>
+
+<script>
+const SHAPES = ['▲', '◆', '●', '■'];
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const blanks = (t) => esc(t).replace(/\(\s*\)/g, '<span class="blank">?</span>');
+const sec = (ms) => (ms / 1000).toFixed(2) + '초';
+const ageIdx = (a) => S.ages.indexOf(a);
+const ageTag = (a) => `<span class="age-tag age${ageIdx(a)}">${esc(a)}</span>`;
+const medal = (i) => ['🥇', '🥈', '🥉'][i] || (i + 1);
+const isOX = (opts) => opts.length === 2 && opts[0] === 'O' && opts[1] === 'X';
+const qNo = (i) => questions[i]?.no || i + 1;
+
+let S = null;            // 서버 상태
+let offset = 0;          // 서버-브라우저 시간 차이
+let override = null;     // 'board' | 'lobby' (진행자가 직접 연 화면)
+let boardTab = 'age';
+let lastRound = -1;
+let lanUrl = location.origin + '/';
+// 인터넷 주소가 준비되면 그것을, 아니면 와이파이 주소를 QR로 보여 줌
+const joinUrl = () => S?.net?.publicUrl || lanUrl;
+let questions = [];
+let pool = 'all';        // 무작위 출제 범위: all | 구약 | 신약
+let picked = 0;          // 목록에서 고른 문제
+
+// ---------- 참가 주소 / QR ----------
+async function initInfo() {
+  const info = await fetch('/api/info').then((r) => r.json());
+  if (['localhost', '127.0.0.1', '::1', '[::1]'].includes(location.hostname) && info.ips.length) {
+    lanUrl = `http://${info.ips[0]}:${location.port || 80}/`;
+  }
+  render();
+}
+function qrSvg(text) {
+  const qr = qrcode(0, 'M');
+  qr.addData(text); qr.make();
+  return qr.createSvgTag(8, 2);
+}
+
+// ---------- 서버 연결 ----------
+function connect() {
+  const es = new EventSource('/api/events?role=host');
+  es.onmessage = (e) => {
+    S = JSON.parse(e.data);
+    offset = S.serverNow - Date.now();
+    if (S.round !== lastRound && S.phase === 'question') { override = null; lastRound = S.round; }
+    render();
+  };
+}
+const post = (url, body) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) }).then((r) => r.json());
+
+// ---------- 문제 고르기 ----------
+function unusedList() {
+  return questions.map((q, i) => i).filter((i) => !S.used.includes(i) && (pool === 'all' || questions[i].group === pool));
+}
+function nextSequential() {
+  for (let i = (S.qIndex ?? -1) + 1; i < questions.length; i++) if (!S.used.includes(i)) return i;
+  return -1;
+}
+window.startRandom = () => {
+  const list = unusedList();
+  if (!list.length) return alert(pool === 'all' ? '모든 문제를 다 냈어요! [♻️ 초기화]를 누르면 처음부터 다시 낼 수 있어요.' : `${pool} 문제를 모두 냈어요.`);
+  startQ(list[Math.floor(Math.random() * list.length)]);
+};
+window.startQ = async (i) => {
+  const r = await post('/api/host/start', { index: i });
+  if (r.error) alert(r.error);
+};
+function poolSelect() {
+  return `<select id="pool" onchange="pool=this.value;render()">${[['all', '구약+신약 전체'], ['구약', '구약만'], ['신약', '신약만']]
+    .map(([v, l]) => `<option value="${v}" ${pool === v ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
+}
+function nextButtons() {
+  const n = nextSequential();
+  return `<button class="btn big pink" onclick="startRandom()">🎲 다음 문제 (무작위)</button>
+    ${n >= 0 ? `<button class="btn big primary" onclick="startQ(${n})">▶ 다음 순서 (${qNo(n)}번)</button>` : ''}`;
+}
+
+// ---------- 화면 그리기 ----------
+let pendingRender = false;
+function render() {
+  if (!S) return;
+  // 진행자가 목록을 고르는 중이면 화면을 잠시 그대로 둠
+  if (document.activeElement?.tagName === 'SELECT' && $('#view').contains(document.activeElement)) { pendingRender = true; return; }
+  pendingRender = false;
+  $('#playerCount').textContent = `참가 ${S.playerCount}명`;
+  const v = override || S.phase;
+  $('#view').innerHTML = v === 'board' ? boardView() : v === 'question' ? questionView() : v === 'reveal' ? revealView() : lobbyView();
+  tick();
+}
+
+function questionPicker() {
+  if (!questions.length) return `<span class="empty">문제가 없어요. [📝 문제 관리]에서 추가하세요.</span>`;
+  const groups = [...new Set(questions.map((q) => q.group || '기타'))];
+  if (picked >= questions.length) picked = 0;
+  return `
+    <div class="start-box">
+      <div class="start-line"><span class="step-no">방법 1</span>
+        ${poolSelect()}
+        <button class="btn big pink" onclick="startRandom()">🎲 무작위 문제 내기</button>
+      </div>
+      <div class="start-line"><span class="step-no">방법 2</span>
+        <select id="qSelect" onchange="picked=+this.value">${groups.map((g) => `<optgroup label="${esc(g)}">${questions.map((q, i) => (q.group || '기타') === g
+          ? `<option value="${i}" ${i === picked ? 'selected' : ''}>${S.used.includes(i) ? '✔ ' : ''}${qNo(i)}. ${q.book ? '[' + esc(q.book) + '] ' : ''}${esc(q.text.slice(0, 26))}…</option>` : '').join('')}</optgroup>`).join('')}</select>
+        <button class="btn big primary" onclick="startQ(+$('#qSelect').value)">▶ 이 문제 시작</button>
+      </div>
+      <div class="p-sub">낸 문제 ${S.used.length} / ${questions.length}개 (✔ 표시는 이미 낸 문제)</div>
+    </div>`;
+}
+
+function netBadge() {
+  const n = S.net;
+  if (n.publicUrl) return `<div class="net ok">✅ <b>데이터(LTE·5G)·와이파이 모두</b> 접속할 수 있어요</div>`;
+  if (n.status === 'cloud') return `<div class="net ok">✅ <b>인터넷 어디서나</b> 접속할 수 있어요 (데이터·와이파이)</div>`;
+  if (n.status === 'off') return `<div class="net warn">📶 같은 와이파이에서만 접속할 수 있어요</div>`;
+  if (n.status === 'starting') return `<div class="net wait">⏳ 데이터 접속용 인터넷 주소를 만드는 중이에요…<br><small>잠시만 기다리면 QR코드가 자동으로 바뀌어요. (지금 QR은 같은 와이파이에서만 돼요)</small></div>`;
+  return `<div class="net warn">⚠️ ${esc(n.message || '인터넷 주소를 만들지 못했어요.')}<br><small>지금 QR은 같은 와이파이에서만 돼요. 진행자 컴퓨터의 인터넷 연결을 확인한 뒤 검은 창을 닫고 다시 실행해 보세요.</small></div>`;
+}
+
+function lobbyView() {
+  return `<section class="lobby">
+    <div class="card qr-card">
+      <div class="qr">${qrSvg(joinUrl())}</div>
+      <div class="join-url ${S.net.publicUrl ? 'small-url' : ''}">${esc(joinUrl())}</div>
+      <p>📱 휴대폰 카메라로 QR코드를 찍으세요</p>
+      ${netBadge()}
+    </div>
+    <div class="card">
+      <h2>🙋 참가자 <b>${S.playerCount}</b>명</h2>
+      <div class="age-chips">${S.ages.map((a, i) => `<div class="age-chip age${i}"><span>${a}</span><b>${S.ageCounts[a]}</b></div>`).join('')}</div>
+      <h3>모둠별 참가자</h3>
+      <div class="team-list">${S.roster.length ? S.roster.map((t) => `<div class="team-box"><h4>${esc(t.team)} <small>(${t.names.length}명)</small></h4>${t.names.map((n) => `<span class="nm">${esc(n.name)}</span>`).join('')}</div>`).join('') : '<span class="empty">아직 들어온 사람이 없어요. 기다리는 중… ⏳</span>'}</div>
+      <h3>문제 내기</h3>
+      ${questionPicker()}
+    </div>
+  </section>`;
+}
+
+function qBlock(reveal) {
+  const q = S.question;
+  const len = q.text.length;
+  const size = len > 100 ? 'xs' : len > 60 ? 'sm' : '';
+  return `<div class="q-text ${size} ${reveal ? 'small' : ''}">
+    <div class="q-meta">${q.book ? `<span class="book-chip ${q.group === '신약' ? 'nt' : 'ot'}">${esc(q.group)} · ${esc(q.book)}</span>` : ''}
+      ${q.ref ? `<span class="ref">📖 ${esc(q.ref)}</span>` : ''}</div>
+    ${blanks(q.text)}</div>`;
+}
+
+function optsHtml(reveal) {
+  const q = S.question;
+  const ox = isOX(q.options);
+  const long = q.options.some((o) => o.length > 22);
+  return `<div class="opts ${ox ? 'ox' : ''} ${long ? 'long' : ''}">${q.options.map((o, i) => {
+    const right = reveal && i === q.answer;
+    return `<div class="opt c${i} ${reveal ? (right ? 'right' : 'dim') : ''}">
+      ${ox ? '' : `<span class="shape">${SHAPES[i]}</span>`}<span class="otext">${esc(o)}</span>
+      ${reveal ? `<span class="cnt">${S.optionCounts[i]}명</span>` : ''}
+      ${right ? '<span class="check">✅</span>' : ''}
+    </div>`;
+  }).join('')}</div>`;
+}
+
+function fastItem(s, i, reveal) {
+  return `<li class="${reveal && !s.correct ? 'wrong' : ''}"><span class="ord">${i + 1}</span>
+    <span>${esc(s.name)} <small>${esc(s.team)}</small> ${ageTag(s.age)}</span>
+    <span class="tm">${reveal ? (s.correct ? '⭕' : '❌') + ' ' : ''}${sec(s.elapsed)}</span></li>`;
+}
+
+function questionView() {
+  return `<section class="play">
+    <div class="q-head">
+      <span class="q-num">${S.question.no}번 문제</span>
+      <span class="pill">✍️ 제출 ${S.submitCount} / ${S.playerCount}명</span>
+      <button class="btn pink" style="margin-left:auto" onclick="post('/api/host/reveal')">⏹ 마감하고 정답 공개</button>
+      <div class="timer" id="timer" style="margin-left:0"><span id="timerNum">${S.limit}</span></div>
+    </div>
+    ${qBlock(false)}
+    ${optsHtml(false)}
+    <div class="live-row">
+      <div class="card fast"><h3>⚡ 빠르게 제출한 사람</h3>
+        <ol class="fast-list">${S.fastest.length ? S.fastest.map((s, i) => fastItem(s, i, false)).join('') : '<span class="empty">첫 번째로 제출할 사람은 누구일까요?</span>'}</ol>
+      </div>
+      <div class="mini-qr">${qrSvg(joinUrl())}<small>${esc(joinUrl())}</small></div>
+    </div>
+  </section>`;
+}
+
+function revealView() {
+  const w = S.fastestCorrect[0];
+  const q = S.question;
+  return `<section class="play">
+    <div class="q-head"><span class="q-num">${q.no}번 문제</span><span class="pill">정답 공개!</span>
+      <span class="answer-banner">정답: <b>${esc(q.options[q.answer])}</b>${q.ref ? ` <small>(${esc(q.ref)})</small>` : ''}</span></div>
+    ${qBlock(true)}
+    ${optsHtml(true)}
+    <div class="reveal-grid">
+      <div class="card winner">
+        <div class="lbl">⚡ 가장 빠른 정답자</div>
+        ${w ? `<div class="who">🏅 ${esc(w.name)}</div><div class="meta">${esc(w.team)} · ${ageTag(w.age)} · ${sec(w.elapsed)} · +${w.points}점</div>`
+            : '<div class="who">정답자가 없어요 😢</div>'}
+        <ol class="fast-list" style="margin-top:14px;text-align:left">${S.fastestCorrect.slice(1, 6).map((s, i) => fastItem(s, i + 1, true)).join('')}</ol>
+      </div>
+      <div class="card">
+        <h3 style="margin:0 0 12px;font-size:26px">👑 연령대별 가장 빠른 정답</h3>
+        <div class="age-best">${S.ages.map((a, i) => {
+          const s = S.ageFastest[a];
+          return `<div class="ab age${i}"><div class="t">${a}</div>${s ? `<div class="n">${esc(s.name)}</div><div class="s">${esc(s.team)} · ${sec(s.elapsed)}</div>` : '<div class="n">-</div><div class="s">정답자 없음</div>'}</div>`;
+        }).join('')}</div>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="btn big" onclick="override='board';render()">🏆 순위 보기</button>
+      ${nextButtons()}
+    </div>
+  </section>`;
+}
+
+function rankLi(p, i, showAge = true) {
+  return `<li><span class="rk">${medal(i)}</span><span class="nm">${esc(p.name)}<small>${esc(p.team)} ${showAge ? '· ' + esc(p.age) : ''}</small></span><span class="sc">${p.score}점</span></li>`;
+}
+
+function boardView() {
+  const R = S.rankings;
+  let body = '';
+  if (boardTab === 'age') {
+    body = `<div class="age-board">${S.ages.map((a, i) => `<div class="age-col age${i}"><h3>${a}</h3><ol class="rank-list">${
+      R.byAge[a].length ? R.byAge[a].slice(0, 5).map((p, j) => rankLi(p, j, false)).join('') : '<li class="empty">참가자 없음</li>'}</ol></div>`).join('')}</div>`;
+  } else if (boardTab === 'team') {
+    const max = Math.max(1, ...R.teams.map((t) => t.score));
+    body = `<div class="card wide-board"><ol class="rank-list">${R.teams.map((t, i) => `<li><span class="rk">${medal(i)}</span>
+      <span class="nm" style="flex:1">${esc(t.team)} <small>${t.members}명 · 정답 ${t.correct}개</small><div class="bar" style="width:${Math.max(3, t.score / max * 100)}%"></div></span>
+      <span class="sc">${t.score}점</span></li>`).join('') || '<li class="empty">참가자 없음</li>'}</ol></div>`;
+  } else {
+    body = `<div class="card wide-board"><ol class="rank-list">${R.overall.map((p, i) => rankLi(p, i)).join('') || '<li class="empty">참가자 없음</li>'}</ol></div>`;
+  }
+  const tab = (k, label) => `<button class="btn ${boardTab === k ? 'on' : ''}" onclick="boardTab='${k}';render()">${label}</button>`;
+  return `<h2 class="board-title">🏆 ${boardTab === 'age' ? '연령대별 순위' : boardTab === 'team' ? '모둠별 순위' : '전체 순위'}</h2>
+    <div class="board-tabs">${tab('age', '👵 연령대별')}${tab('team', '👥 모둠별')}${tab('all', '🌟 전체')}</div>
+    ${body}
+    <div class="controls" style="margin-top:20px">
+      ${S.phase !== 'lobby' ? `<button class="btn big" onclick="override=null;render()">↩ 문제 화면으로</button>` : ''}
+      ${nextButtons()}
+    </div>`;
+}
+
+// ---------- 타이머 ----------
+function tick() {
+  const el = $('#timer');
+  if (!el || !S || S.phase !== 'question') return;
+  const left = Math.max(0, S.startedAt + S.limit * 1000 - (Date.now() + offset));
+  $('#timerNum').textContent = Math.ceil(left / 1000);
+  el.style.setProperty('--p', (left / (S.limit * 1000)) * 100 + '%');
+}
+setInterval(tick, 200);
+$('#view').addEventListener('focusout', () => setTimeout(() => pendingRender && render(), 0));
+
+// ---------- 위쪽 버튼 ----------
+const help = $('#help');
+$('#btnHelp').onclick = () => help.showModal();
+$('#btnLobby').onclick = () => { override = 'lobby'; render(); };
+$('#btnBoard').onclick = () => { override = 'board'; render(); };
+$('#btnReset').onclick = async () => {
+  const all = confirm('참가자 명단까지 모두 지울까요?\n\n[확인] 참가자까지 모두 삭제 (새 대회)\n[취소] 다음 단계에서 점수만 초기화 선택');
+  if (all) { await post('/api/host/reset', { clearPlayers: true }); }
+  else if (confirm('참가자는 그대로 두고 점수만 0점으로 초기화할까요?')) { await post('/api/host/reset', { clearPlayers: false }); }
+  else return;
+  override = null; render();
+};
+
+// ---------- 문제 관리 ----------
+const manage = $('#manage');
+let editing = -1;
+let fAnswer = 0;
+async function loadQuestions() { questions = await fetch('/api/questions').then((r) => r.json()); render(); }
+async function saveQuestions() {
+  const r = await fetch('/api/questions', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(questions) }).then((r) => r.json());
+  if (r.error) { alert(r.error); await loadQuestions(); }
+  drawRows(); render();
+}
+function drawRows() {
+  $('#qCount').textContent = `(총 ${questions.length}문제)`;
+  $('#qRows').innerHTML = questions.map((q, i) => `<div class="q-row">
+    <span class="tx">${qNo(i)}. ${q.book ? `<b>[${esc(q.book)}]</b> ` : ''}${esc(q.text)}<br><small>정답: ${esc(q.options[q.answer])} · ${esc(q.ref || '')} · ${q.time}초</small></span>
+    <button class="btn" onclick="editQ(${i})">✏️ 수정</button>
+    <button class="btn" onclick="delQ(${i})">🗑</button>
+    <button class="btn primary" onclick="manage.close();startQ(${i})">▶ 시작</button>
+  </div>`).join('') || '<p class="empty">아직 문제가 없어요.</p>';
+}
+function drawOptInputs(values) {
+  const type = $('#fType').value;
+  const n = type === 'ox' ? 2 : +type;
+  if (fAnswer >= n) fAnswer = 0;
+  $('#fOpts').innerHTML = Array.from({ length: n }, (_, i) => `<label>
+    <input type="radio" name="ans" ${i === fAnswer ? 'checked' : ''} onchange="fAnswer=${i}">
+    <input type="text" class="fo" value="${esc(type === 'ox' ? ['O', 'X'][i] : (values?.[i] ?? ''))}" ${type === 'ox' ? 'readonly' : ''} placeholder="${SHAPES[i]} 보기 ${i + 1}">
+  </label>`).join('');
+}
+function resetForm() {
+  editing = -1; fAnswer = 0;
+  $('#formTitle').textContent = '➕ 새 문제 추가';
+  $('#fText').value = ''; $('#fTime').value = 30; $('#fType').value = '4'; $('#fMsg').textContent = '';
+  $('#fBook').value = ''; $('#fRef').value = ''; $('#fGroup').value = '신약';
+  drawOptInputs();
+}
+window.editQ = (i) => {
+  const q = questions[i];
+  editing = i; fAnswer = q.answer;
+  $('#formTitle').textContent = `✏️ ${qNo(i)}번 문제 수정`;
+  $('#fText').value = q.text; $('#fTime').value = q.time;
+  $('#fBook').value = q.book || ''; $('#fRef').value = q.ref || ''; $('#fGroup').value = q.group || '';
+  $('#fType').value = isOX(q.options) ? 'ox' : String(Math.max(3, q.options.length));
+  drawOptInputs(q.options);
+  $('#qForm').scrollIntoView({ behavior: 'smooth' });
+};
+window.delQ = (i) => { if (confirm(`${qNo(i)}번 문제를 지울까요?`)) { questions.splice(i, 1); saveQuestions(); } };
+$('#fType').onchange = () => drawOptInputs([...document.querySelectorAll('.fo')].map((x) => x.value));
+$('#fCancel').onclick = resetForm;
+$('#fSave').onclick = () => {
+  const q = {
+    ...(editing >= 0 ? questions[editing] : { no: Math.max(0, ...questions.map((x) => x.no || 0)) + 1 }),
+    text: $('#fText').value.trim(), options: [...document.querySelectorAll('.fo')].map((x) => x.value.trim()),
+    answer: fAnswer, time: +$('#fTime').value || 30,
+    group: $('#fGroup').value, book: $('#fBook').value.trim(), ref: $('#fRef').value.trim(),
+  };
+  if (!q.text || q.options.some((o) => !o)) { $('#fMsg').textContent = '문제와 보기를 모두 입력해 주세요.'; return; }
+  if (editing >= 0) questions[editing] = q; else questions.push(q);
+  saveQuestions(); resetForm(); $('#fMsg').textContent = '저장했어요 ✅';
+};
+$('#qExport').onclick = () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(questions, null, 1)], { type: 'application/json' }));
+  a.download = 'questions.json'; a.click();
+};
+$('#qImport').onchange = async (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    const list = JSON.parse(await f.text());
+    if (!Array.isArray(list)) throw 0;
+    if (!confirm(`문제 ${list.length}개를 불러올까요? (지금 문제는 바뀌어요)`)) return;
+    questions = list; await saveQuestions();
+  } catch { alert('문제 파일이 올바르지 않아요.'); }
+  e.target.value = '';
+};
+$('#btnManage').onclick = () => { drawRows(); resetForm(); manage.showModal(); };
+
+loadQuestions();
+initInfo();
+connect();
+</script>
+</body>
+</html>

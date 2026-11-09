@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>성경 퀴즈 참가하기</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body class="player">
+<div class="p-wrap">
+  <div class="p-brand">🧚 성경 퀴즈 대회</div>
+  <div id="app"></div>
+</div>
+
+<script>
+const SHAPES = ['▲', '◆', '●', '■'];
+const AGES = ['40대 미만', '50대', '60대', '70대', '80대 이상'];
+const TEAMS = Array.from({ length: 12 }, (_, i) => `${i + 1}모둠`);
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const blanks = (t) => esc(t).replace(/\(\s*\)/g, '<span class="blank">?</span>');
+const isOX = (o) => o.length === 2 && o[0] === 'O' && o[1] === 'X';
+const ageTag = (a) => `<span class="age-tag age${AGES.indexOf(a)}">${esc(a)}</span>`;
+
+let pid = localStorage.getItem('quiz_pid');
+let profile = JSON.parse(localStorage.getItem('quiz_profile') || '{}');
+let S = null, offset = 0, es = null, sig = '', selected = null, sending = false;
+
+// ---------- 입장 ----------
+function showJoin(msg = '') {
+  sig = 'join';
+  stopConn();
+  const f = { name: profile.name || '', team: profile.team || '', age: profile.age || '' };
+  $('#app').innerHTML = `
+    <div class="p-card"><h2>① 이름을 써 주세요</h2>
+      <input class="p-input" id="name" maxlength="20" placeholder="예) 홍길동" value="${esc(f.name)}"></div>
+    <div class="p-card"><h2>② 우리 모둠은?</h2>
+      <div class="pick-grid" id="teams">${TEAMS.map((t) => `<button class="pick ${t === f.team ? 'on' : ''}" data-v="${t}">${t}</button>`).join('')}</div></div>
+    <div class="p-card"><h2>③ 나이대를 골라 주세요</h2>
+      <div class="pick-grid ages" id="ages">${AGES.map((a, i) => `<button class="pick age${i} ${a === f.age ? 'on' : ''}" data-v="${a}">${a}</button>`).join('')}</div></div>
+    <div class="err" id="err">${esc(msg)}</div>
+    <button class="p-btn" id="go">입장하기 🚀</button>`;
+  const pickGroup = (id, key) => $(id).onclick = (e) => {
+    const b = e.target.closest('.pick'); if (!b) return;
+    f[key] = b.dataset.v;
+    $(id).querySelectorAll('.pick').forEach((x) => x.classList.toggle('on', x === b));
+  };
+  pickGroup('#teams', 'team'); pickGroup('#ages', 'age');
+  $('#go').onclick = async () => {
+    f.name = $('#name').value.trim();
+    if (!f.name) return ($('#err').textContent = '이름을 써 주세요.');
+    if (!f.team) return ($('#err').textContent = '모둠을 골라 주세요.');
+    if (!f.age) return ($('#err').textContent = '나이대를 골라 주세요.');
+    $('#go').disabled = true;
+    try {
+      const r = await post('/api/join', f);
+      if (r.error) throw new Error(r.error);
+      pid = r.id; profile = f;
+      localStorage.setItem('quiz_pid', pid);
+      localStorage.setItem('quiz_profile', JSON.stringify(f));
+      connect();
+    } catch (e) { $('#err').textContent = e.message || '연결이 안 돼요. 다시 눌러 주세요.'; $('#go').disabled = false; }
+  };
+}
+
+const post = (url, body) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then((r) => r.json());
+
+// ---------- 서버 연결 ----------
+// 기본은 실시간 연결(SSE). 잘 안 되면 자동으로 '주기적 확인' 방식으로 바꿈.
+let usePoll = /trycloudflare\.com$/.test(location.hostname) || new URLSearchParams(location.search).has('poll');
+let pollTimer = null, ver = -1, sseFails = 0, gotAny = false;
+
+function onState(d) {
+  gotAny = true; netBanner(false);
+  S = d;
+  offset = S.serverNow - Date.now();
+  if (S.me.unknown) { // 진행자가 초기화했거나 서버가 다시 시작됨
+    localStorage.removeItem('quiz_pid'); pid = null;
+    return showJoin('다시 입장해 주세요 🙂');
+  }
+  render();
+}
+function stopConn() {
+  if (es) { es.close(); es = null; }
+  clearTimeout(pollTimer); pollTimer = null;
+}
+function connect() {
+  stopConn();
+  if (usePoll) return poll();
+  es = new EventSource('/api/events?pid=' + encodeURIComponent(pid));
+  es.onmessage = (e) => { sseFails = 0; onState(JSON.parse(e.data)); };
+  es.onerror = () => {
+    netBanner(true);
+    if (++sseFails >= 3) { usePoll = true; connect(); } // 실시간 연결이 계속 끊기면 방식 변경
+  };
+}
+async function poll() {
+  if (!pid) return;
+  try {
+    const r = await fetch(`/api/poll?pid=${encodeURIComponent(pid)}&v=${ver}`, { cache: 'no-store' });
+    const d = await r.json();
+    if (!d.same) { ver = d.v; onState(d); } else netBanner(false);
+    if (!pid) return;
+  } catch { netBanner(true); }
+  pollTimer = setTimeout(poll, S && S.phase === 'question' && !(S.me && S.me.sub) ? 700 : 1500);
+}
+function netBanner(show) {
+  let b = document.getElementById('netBanner');
+  if (!b) { b = document.createElement('div'); b.id = 'netBanner'; b.className = 'net-banner'; b.textContent = '📶 연결이 불안정해요… 다시 연결하는 중'; document.body.appendChild(b); }
+  b.classList.toggle('hidden', !show || !gotAny);
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden && pid) connect(); }); // 화면을 다시 켜면 바로 다시 연결
+
+window.leave = async () => {
+  if (!confirm('이름·모둠·나이대를 바꿔서 다시 입장할까요?\n(지금까지 점수는 사라져요)')) return;
+  await post('/api/leave', { pid }).catch(() => {});
+  localStorage.removeItem('quiz_pid'); pid = null;
+  showJoin();
+};
+
+// ---------- 화면 ----------
+function meBar() {
+  const m = S.me;
+  return `<div class="me-bar"><b>${esc(m.name)}</b> · ${esc(m.team)} · ${ageTag(m.age)} · <span>⭐ ${m.score}점</span></div>`;
+}
+function stats() {
+  const m = S.me;
+  return `<div class="stat-row">
+    <div><b>${m.ageRank}위</b><span>${esc(m.age)} (${m.ageTotal}명 중)</span></div>
+    <div><b>${m.rank}위</b><span>전체 (${S.playerCount}명 중)</span></div>
+    <div><b>${m.teamRank}위</b><span>${esc(m.team)} 순위 (${m.teamTotal}개 모둠 중)</span></div></div>`;
+}
+
+function render() {
+  const m = S.me;
+  let key, html;
+  if (S.phase === 'question' && !m.sub) {
+    key = 'q' + S.round;
+    if (key !== sig) selected = null;
+    const q = S.question, o = q.options, ox = isOX(o), long = o.some((t) => t.length > 22);
+    html = `${meBar()}<div class="tbar"><i id="tbar"></i></div>
+      <div class="p-q"><div class="p-meta"><span class="p-sub">${q.no}번</span>${q.book ? `<span class="book-chip ${q.group === '신약' ? 'nt' : 'ot'}">${esc(q.book)}</span>` : ''}${q.ref ? `<span class="p-sub">📖 ${esc(q.ref)}</span>` : ''}</div>${blanks(q.text)}</div>
+      <p class="center p-sub" style="margin:0 0 8px">① 답을 누르고 → ② [제출하기]를 누르세요</p>
+      <div class="choices ${ox ? 'ox' : ''} ${long ? 'long' : ''}" id="choices">${o.map((t, i) => `<button class="choice c${i}" data-i="${i}">${ox ? '' : SHAPES[i]} <span class="ctext">${esc(t)}</span></button>`).join('')}</div>
+
+      <div class="err" id="err"></div>
+      <button class="p-btn" id="send" disabled>정답 고르기 👆</button>`;
+  } else if (S.phase === 'question') {
+    key = 'sub' + S.round;
+    html = `${meBar()}<div class="p-card center">
+      <div class="big-emoji">📮</div><h2>제출 완료!</h2>
+      <p style="font-size:28px;margin:6px 0"><b>${m.sub.order}번째</b>로 제출했어요</p>
+      <p class="p-sub">${(m.sub.elapsed / 1000).toFixed(2)}초 · 내가 고른 답: ${esc(S.question.options[m.sub.choice])}</p>
+      <p class="p-sub">정답 공개를 기다려 주세요 ⏳</p></div>`;
+  } else if (S.phase === 'reveal') {
+    key = 'r' + S.round + ':' + m.score + ':' + m.rank + ':' + m.ageRank;
+    const ans = esc(S.question.options[S.question.answer]);
+    const s = m.sub;
+    html = `${meBar()}<div class="p-card center ${s?.correct ? 'result-ok' : 'result-no'}">
+      <div class="big-emoji">${s ? (s.correct ? '🎉' : '😢') : '⏰'}</div>
+      <h2 style="font-size:34px">${s ? (s.correct ? `정답! +${s.points}점` : '아쉬워요, 오답!') : '시간 안에 제출하지 못했어요'}</h2>
+      <p style="font-size:24px">정답: <b>${ans}</b>${S.question.ref ? `<br><small class="p-sub">📖 ${esc(S.question.ref)}</small>` : ''}</p>
+      ${s ? `<p class="p-sub">${s.order}번째 제출 · ${(s.elapsed / 1000).toFixed(2)}초</p>` : ''}
+      ${stats()}</div>
+      <p class="center p-sub">다음 문제를 기다려 주세요</p>`;
+  } else {
+    key = 'lobby:' + m.score + ':' + m.rank + ':' + S.playerCount;
+    html = `${meBar()}<div class="p-card center">
+      <div class="big-emoji">🙌</div><h2 style="font-size:30px">입장 완료!</h2>
+      <p>화면에 문제가 나오면<br>여기에도 바로 나타나요.</p>
+      <p class="p-sub">함께하는 사람 ${S.playerCount}명</p>
+      ${m.score ? stats() : ''}
+      <button class="link-btn" onclick="leave()">이름·모둠·나이대 바꾸기</button></div>`;
+  }
+  if (key === sig) return; // 같은 화면이면 다시 그리지 않음 (선택 유지)
+  sig = key;
+  $('#app').innerHTML = html;
+  if (S.phase === 'question' && !m.sub) bindChoices();
+  tick();
+}
+
+function bindChoices() {
+  const box = $('#choices');
+  box.onclick = (e) => {
+    const b = e.target.closest('.choice'); if (!b || b.disabled) return;
+    selected = +b.dataset.i;
+    box.classList.add('picked');
+    box.querySelectorAll('.choice').forEach((x) => x.classList.toggle('on', x === b));
+    const btn = $('#send'); btn.disabled = false; btn.textContent = '제출하기 ✔';
+    if (navigator.vibrate) navigator.vibrate(30);
+  };
+  $('#send').onclick = async () => {
+    if (selected === null || sending) return;
+    sending = true; $('#send').disabled = true; $('#send').textContent = '보내는 중…';
+    try {
+      const r = await post('/api/answer', { pid, choice: selected, round: S.round });
+      if (r.error) { $('#err').textContent = r.error; }
+    } catch { $('#err').textContent = '전송 실패! 다시 눌러 주세요.'; $('#send').disabled = false; $('#send').textContent = '제출하기 ✔'; }
+    sending = false;
+  };
+}
+
+function tick() {
+  const bar = $('#tbar');
+  if (!bar || !S || S.phase !== 'question') return;
+  const left = Math.max(0, S.startedAt + S.limit * 1000 - (Date.now() + offset));
+  bar.style.width = (left / (S.limit * 1000)) * 100 + '%';
+  if (left <= 0 && !S.me.sub) {
+    document.querySelectorAll('.choice').forEach((b) => (b.disabled = true));
+    const btn = $('#send'); if (btn) { btn.disabled = true; btn.textContent = '시간 종료 ⏰'; }
+  }
+}
+setInterval(tick, 250);
+
+if (pid) connect(); else showJoin();
+</script>
+</body>
+</html>
