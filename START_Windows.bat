@@ -1,7 +1,7 @@
 @echo off
 chcp 65001 >nul
 cd /d "%~dp0"
-title 성경 퀴즈 대회 - 이 창을 닫으면 퀴즈가 꺼져요
+title 집밥 프로젝트 은혜제 - 이 창을 닫으면 퀴즈가 꺼져요
 where node >nul 2>nul
 if errorlevel 1 goto NONODE
 node server.js

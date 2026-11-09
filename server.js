@@ -1,4 +1,4 @@
-// 성경 퀴즈 대회 서버 (외부 패키지 없이 Node.js만으로 실행)
+// 집밥 프로젝트 은혜제 서버 (외부 패키지 없이 Node.js만으로 실행)
 // 내 컴퓨터에서: node server.js  →  진행자 화면 http://localhost:3000/host
 // 인터넷 서버(Render 등)에서: 환경변수 HOST_PASSWORD(진행자 비밀번호)를 꼭 정해 주세요.
 const http = require('http');
@@ -382,7 +382,7 @@ server.on('error', (e) => {
 
 server.keepAliveTimeout = 65000;
 server.listen(PORT, () => {
-  console.log('\n🧚 성경 퀴즈 대회가 시작되었어요!\n');
+  console.log('\n🧚 집밥 프로젝트 은혜제가 시작되었어요!\n');
   if (CLOUD) {
     console.log(`  인터넷 서버 모드 (포트 ${PORT}) · 진행자 비밀번호 ${HOST_PASSWORD ? '설정됨 ✅' : '없음 ⚠️  HOST_PASSWORD를 정해 주세요'}`);
     return;

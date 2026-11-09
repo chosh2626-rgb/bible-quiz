@@ -178,7 +178,7 @@ body.player { font-size: 22px; }
 .stat-row span { font-size: 16px; color: var(--sub); }
 .link-btn { background: none; border: 0; color: var(--sub); text-decoration: underline; font-size: 18px; display: block; margin: 10px auto 0; }
 
-/* ================= 성경 퀴즈 추가 ================= */
+/* ================= 집밥 프로젝트 은혜제 추가 ================= */
 .q-text.sm { font-size: clamp(26px, 3.2vw, 46px); }
 .q-text.xs { font-size: clamp(22px, 2.6vw, 38px); }
 .q-text.small { font-size: clamp(20px, 2.2vw, 32px); padding: 16px 26px; }
@@ -218,3 +218,7 @@ body.player #send { position: sticky; bottom: 12px; z-index: 5; }
 .age-board .rank-list li { font-size: 18px; gap: 6px; padding: 10px 4px; }
 .age-board .rank-list .rk { width: 28px; font-size: 20px; }
 .rank-list .nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+/* 정답 공개: 연령대별 가장 빠른 정답 6칸 → 3칸 × 2줄 */
+.age-best { grid-template-columns: repeat(3, 1fr); }
+.age-best .ab .t, .age-best .ab .n { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.age-best .ab { padding: 10px 8px; }
