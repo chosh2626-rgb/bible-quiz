@@ -165,8 +165,25 @@ function render() {
   $('#playerCount').textContent = `참가 ${S.playerCount}명`;
   const v = override || S.phase;
   $('#view').innerHTML = v === 'board' ? boardView() : v === 'question' ? questionView() : v === 'reveal' ? revealView() : lobbyView();
+  fitView();
   tick();
 }
+
+// 화면(빔프로젝터·노트북) 크기에 맞춰 진행자 화면 전체가 한눈에 들어오도록 자동으로 줄임
+function fitView() {
+  const v = $('#view');
+  v.style.zoom = 1;
+  const avail = window.innerHeight - v.getBoundingClientRect().top - 6;
+  // 줄이면 가로가 넓어져 높이가 다시 줄어들므로 몇 번 반복해서 딱 맞춤
+  let z = 1;
+  for (let i = 0; i < 4; i++) {
+    const h = v.scrollHeight * z; // 지금 화면에 보이는 높이
+    if (h <= avail && (z === 1 || h > avail - 30)) break;
+    z = Math.max(0.5, Math.min(1, z * avail / h));
+    v.style.zoom = z;
+  }
+}
+window.addEventListener('resize', () => S && fitView());
 
 function questionPicker() {
   if (!questions.length) return `<span class="empty">문제가 없어요. [📝 문제 관리]에서 추가하세요.</span>`;
@@ -206,9 +223,12 @@ function lobbyView() {
     </div>
     <div class="card">
       <h2>🙋 참가자 <b>${S.playerCount}</b>명</h2>
-      <div class="age-chips">${S.ages.map((a, i) => `<div class="age-chip age${i}"><span>${a}</span><b>${S.ageCounts[a]}</b></div>`).join('')}</div>
-      <h3>연령대별 참가자</h3>
-      <div class="team-list">${S.playerCount ? S.roster.filter((g) => g.names.length).map((g) => `<div class="team-box age${ageIdx(g.age)}"><h4>${esc(g.age)} <small>(${g.names.length}명)</small></h4>${g.names.map((n) => `<span class="nm">${esc(n)}</span>`).join('')}</div>`).join('') : '<span class="empty">아직 들어온 사람이 없어요. 기다리는 중… ⏳</span>'}</div>
+      <!-- 연령대마다 한 칸씩: 위에는 인원, 아래에는 최근 들어온 사람 이름 -->
+      <div class="age-cols">${S.roster.map((g, i) => `<div class="age-colbox age${i}">
+        <div class="ac-head"><span>${esc(g.age)}</span><b>${g.names.length}</b></div>
+        <div class="ac-names">${g.names.slice(-8).reverse().map((n) => `<span class="nm">${esc(n)}</span>`).join('')}${g.names.length > 8 ? `<span class="more">외 ${g.names.length - 8}명</span>` : ''}</div>
+      </div>`).join('')}</div>
+      ${S.playerCount ? '' : '<p class="empty" style="margin:10px 0 0">아직 들어온 사람이 없어요. 기다리는 중… ⏳</p>'}
       <h3>문제 내기</h3>
       ${questionPicker()}
     </div>

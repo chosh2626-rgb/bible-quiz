@@ -234,3 +234,27 @@ body.player #send { position: sticky; bottom: 12px; z-index: 5; }
 .big-rank .sc { font-size: 26px; color: #1c7ed6; }
 .big-rank .empty { grid-column: 1 / -1; background: none; font-size: 24px; }
 @media (max-width: 1000px) { .age-board { grid-template-columns: repeat(3, 1fr); } .big-rank { grid-template-columns: repeat(3, 1fr); } }
+/* 대기실: 연령대별 6칸 기둥 (80대도 항상 보이게) */
+.age-cols { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+.age-colbox { border-radius: 20px; overflow: hidden; background: #f6f3ff; display: flex; flex-direction: column; }
+.ac-head { background: var(--age); color: #fff; text-align: center; padding: 10px 4px; }
+.ac-head span { display: block; font-size: 20px; white-space: nowrap; }
+.ac-head b { font-size: 40px; font-weight: normal; line-height: 1.1; }
+.ac-names { padding: 8px 6px; display: flex; flex-direction: column; align-items: center; gap: 3px; min-height: 60px; max-height: 250px; overflow: hidden; }
+.ac-names .nm { font-size: 18px; white-space: nowrap; animation: pop .35s; }
+.ac-names .more { font-size: 15px; color: var(--sub); }
+#view { transform-origin: top left; }
+/* 순위 윗줄은 조금 촘촘하게 → 80대 칸에 자리를 더 줌 */
+.age-board .rank-list li { padding: 7px 4px; }
+.board-title { font-size: 38px; margin: 0 0 10px; }
+.board-tabs { margin-bottom: 12px; }
+/* 정답 공개 화면 조금 촘촘하게 */
+.reveal-grid .card { padding: 16px 18px; }
+.winner .who { font-size: 46px; margin: 2px 0; }
+@media (max-width: 1000px) { .age-cols { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 1150px) {
+  .logo { font-size: 24px; white-space: nowrap; }
+  .topbar { gap: 10px; padding: 10px 16px; }
+  .top-actions .btn { font-size: 16px; padding: 8px 12px; }
+  #playerCount { font-size: 16px; white-space: nowrap; }
+}

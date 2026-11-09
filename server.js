@@ -254,7 +254,7 @@ function cookie(req, name) {
 }
 function sendFile(res, full) {
   const ext = path.extname(full);
-  res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': ext === '.html' ? 'no-cache' : 'public, max-age=3600' });
+  res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': ext === '.js' && full.endsWith('qrcode.js') ? 'public, max-age=86400' : 'no-cache' });
   fs.createReadStream(full).pipe(res);
 }
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon' };
