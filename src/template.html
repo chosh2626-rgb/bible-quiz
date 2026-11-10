@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>전도회 성경 퀴즈 대회</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+/* 밝은 보랏빛 무대 위에 색깔 카드가 놓이는 퀴즈쇼 화면. 남전도회=파랑, 여전도회=분홍. */
+:root{
+  --bg:#F3F0FF; --card:#FFFFFF; --ink:#27204D; --mute:#756F96; --line:#E0DAF7;
+  --main:#6B4BF0; --main-d:#4D30C9; --sun:#FFC93C;
+  --men:#2F7BF5; --women:#EE4E8B; --ok:#16A869; --bad:#E5484D;
+  --a0:#EF4F6B; --a1:#2F7BF5; --a2:#F2A900; --a3:#1BAA6E;
+  --disp:"Jua","Noto Sans KR",sans-serif; --body:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{word-break:keep-all;overflow-wrap:anywhere;background:var(--bg);color:var(--ink);font-family:var(--body);color-scheme:light;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.hide{display:none!important}
+.btn{background:var(--main);color:#fff;font-family:var(--disp);font-size:1.15rem;padding:.7em 1.4em;border-radius:999px;box-shadow:0 4px 0 var(--main-d);transition:transform .08s}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--main-d)}
+.btn:disabled{background:#C9C3E6;box-shadow:0 4px 0 #ADA6D0;cursor:not-allowed}
+.btn.ghost{background:#fff;color:var(--main);box-shadow:0 0 0 2px var(--line) inset}
+.btn.sm{font-size:.95rem;padding:.45em 1em;box-shadow:none}
+.btn.warn{background:#fff;color:var(--bad);box-shadow:0 0 0 2px #F5C6C8 inset}
+.dot{display:inline-block;width:.6em;height:.6em;border-radius:50%;background:var(--bad);margin-right:.4em}
+.dot.on{background:var(--ok)}
+
+/* ───────── 진행자 화면 ───────── */
+#host{height:100%;display:flex;flex-direction:column}
+.top{display:flex;align-items:center;gap:14px;padding:10px 22px;background:var(--main);color:#fff;flex-wrap:wrap}
+.top h1{font-family:var(--disp);font-weight:400;font-size:1.5rem;margin-right:auto}
+.top .pill{background:rgba(255,255,255,.18);border-radius:999px;padding:.3em .9em;font-size:.9rem;font-weight:500}
+.top .tab{color:#fff;padding:.35em .9em;border-radius:999px;font-weight:700;font-size:.95rem;opacity:.75}
+.top .tab.on{background:#fff;color:var(--main);opacity:1}
+#stage{flex:1;min-height:0;padding:2.2vh 2.4vw;display:flex;flex-direction:column;overflow:auto}
+.bar{display:flex;align-items:center;gap:14px;padding:12px 22px;background:#fff;border-top:2px solid var(--line);flex-wrap:wrap}
+.bar .info{margin-right:auto;color:var(--mute);font-weight:500}
+
+.lobby{flex:1;display:grid;grid-template-columns:minmax(260px,34vw) 1fr;gap:2.4vw;min-height:0}
+.join{background:var(--card);border-radius:28px;padding:2.4vh 1.6vw;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.4vh;text-align:center}
+.join h2{font-family:var(--disp);font-weight:400;font-size:clamp(1.3rem,2.3vw,2.4rem)}
+.qr{width:min(100%,46vh);aspect-ratio:1;background:#fff;border:6px solid var(--main);border-radius:20px;padding:8px}
+.qr svg{width:100%;height:100%;display:block}
+.link{font-size:clamp(.8rem,1.1vw,1.1rem);color:var(--mute);word-break:break-all;user-select:all}
+.code{font-family:var(--disp);font-size:clamp(1.6rem,3vw,3rem);letter-spacing:.12em;color:var(--main)}
+.warnbox{background:#FFF4D6;border-radius:12px;padding:.6em 1em;font-size:.9rem;color:#7A5300}
+.teams{display:flex;flex-direction:column;gap:2vh;min-height:0}
+.grp{background:var(--card);border-radius:28px;padding:2vh 1.6vw}
+.grp h3{font-family:var(--disp);font-weight:400;font-size:clamp(1.1rem,1.8vw,1.9rem);margin-bottom:1.2vh;display:flex;align-items:center;gap:.5em}
+.grp h3 small{font-family:var(--body);font-size:.6em;color:var(--mute);font-weight:500}
+.grp.m h3{color:var(--men)} .grp.w h3{color:var(--women)}
+.chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(8.5em,1fr));gap:1vh .8vw;font-size:clamp(.95rem,1.5vw,1.6rem)}
+.chip{font-family:var(--disp);text-align:center;padding:.5em .3em;border-radius:14px;background:#F1EFF8;color:#B1ABCB;border:2px dashed #D5CFEC}
+.grp.m .chip.on{background:var(--men);color:#fff;border:2px solid var(--men)}
+.grp.w .chip.on{background:var(--women);color:#fff;border:2px solid var(--women)}
+
+.qhead{display:flex;align-items:center;gap:1.4vw;margin-bottom:1.6vh}
+.qno{font-family:var(--disp);background:var(--main);color:#fff;border-radius:999px;padding:.25em 1em;font-size:clamp(1rem,1.7vw,1.8rem);white-space:nowrap}
+.tbar{flex:1;height:1.8vh;min-height:10px;background:#fff;border-radius:999px;overflow:hidden}
+.tbar i{display:block;height:100%;width:100%;background:var(--sun);border-radius:999px;transition:width .1s linear}
+.tnum{font-family:var(--disp);font-size:clamp(1.6rem,3.4vw,3.6rem);min-width:2.2em;text-align:right;font-variant-numeric:tabular-nums}
+.qtext{background:var(--card);border-radius:28px;padding:3vh 2.4vw;font-family:var(--disp);font-size:clamp(1.5rem,3.6vw,4rem);line-height:1.3;text-align:center;text-wrap:balance;display:flex;align-items:center;justify-content:center;flex:1;min-height:16vh}
+.qtext.small{flex:0 0 auto;min-height:0;font-size:clamp(1.2rem,2.3vw,2.5rem);padding:2vh 2vw}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:1.6vh 1.2vw;margin-top:1.8vh}
+.opt{display:flex;align-items:center;gap:.7em;color:#fff;border-radius:22px;padding:.7em 1em;font-family:var(--disp);font-size:clamp(1.2rem,2.6vw,2.9rem);min-height:10vh;position:relative}
+.opt .sh{font-size:.8em;opacity:.9}
+.opt .cnt{margin-left:auto;background:rgba(255,255,255,.25);border-radius:999px;padding:.05em .7em;font-size:.7em}
+.c0{background:var(--a0)} .c1{background:var(--a1)} .c2{background:var(--a2)} .c3{background:var(--a3)}
+.opt.dim{opacity:.28}
+.opt.right{outline:.4vw solid var(--ink)}
+.opt.right::after{content:"정답";position:absolute;top:-.7em;right:1em;background:var(--ink);color:#fff;font-size:.5em;padding:.2em .9em;border-radius:999px}
+.shortnote{margin-top:1.8vh;text-align:center;font-family:var(--disp);font-size:clamp(1.1rem,2vw,2.2rem);color:var(--mute)}
+.subs{margin-top:1.8vh;display:flex;flex-wrap:wrap;gap:.8vh .6vw;align-items:center;min-height:5vh;font-size:clamp(.9rem,1.4vw,1.5rem)}
+.subs b{font-family:var(--disp);font-weight:400;color:var(--mute);margin-right:.4em}
+.sub{font-family:var(--disp);padding:.25em .8em;border-radius:999px;color:#fff;animation:pop .25s}
+.sub.m{background:var(--men)} .sub.w{background:var(--women)}
+.sub small{opacity:.85;font-family:var(--body);font-size:.75em;margin-left:.35em}
+@keyframes pop{from{transform:scale(.6);opacity:0}}
+
+.reveal{flex:1;display:grid;grid-template-columns:1.25fr 1fr;gap:2vw;min-height:0}
+.reveal .left{display:flex;flex-direction:column;min-height:0}
+.answer-big{margin-top:1.8vh;background:var(--ok);color:#fff;border-radius:22px;padding:.5em 1em;text-align:center;font-family:var(--disp);font-size:clamp(1.4rem,3vw,3.2rem)}
+.fast{background:var(--sun);border-radius:28px;padding:2.2vh 1.6vw;text-align:center}
+.fast .lab{font-weight:700;font-size:clamp(.9rem,1.3vw,1.4rem)}
+.fast .who{font-family:var(--disp);font-size:clamp(2rem,4.6vw,5rem);line-height:1.15}
+.fast .how{font-weight:700;font-size:clamp(1rem,1.6vw,1.7rem)}
+.reslist{margin-top:1.6vh;background:var(--card);border-radius:22px;padding:1.4vh 1.2vw;overflow:auto;flex:1;min-height:0}
+.res{display:grid;grid-template-columns:2em 1fr auto auto;gap:.8em;align-items:center;padding:.38em .5em;border-radius:10px;font-size:clamp(.9rem,1.35vw,1.45rem)}
+.res:nth-child(odd){background:#F7F5FF}
+.res .n{font-family:var(--disp);color:var(--mute);text-align:center}
+.res .nm{font-family:var(--disp)} .res .nm.m{color:var(--men)} .res .nm.w{color:var(--women)}
+.res .nm small{font-family:var(--body);color:var(--mute);font-size:.75em;margin-left:.5em}
+.res .tm{font-variant-numeric:tabular-nums;color:var(--mute)}
+.res .pt{font-weight:900;font-variant-numeric:tabular-nums;color:var(--ok);min-width:3.6em;text-align:right}
+.res.x .pt{color:var(--bad)} .res.x .nm{opacity:.6}
+.right-col{display:flex;flex-direction:column;min-height:0}
+
+.rank{flex:1;display:grid;grid-template-columns:1fr 2fr;gap:2vw;min-height:0}
+.rank .grp{display:flex;flex-direction:column;min-height:0}
+.rows{flex:1;display:grid;gap:.9vh .9vw;grid-auto-flow:column;min-height:0}
+.grp.m .rows{grid-template-rows:repeat(6,1fr)}
+.grp.w .rows{grid-template-rows:repeat(8,1fr);grid-template-columns:1fr 1fr}
+.row{display:grid;grid-template-columns:2.2em 1fr auto;align-items:center;gap:.6em;background:#F7F5FF;border-radius:14px;padding:.2em .8em;font-size:clamp(.95rem,1.7vw,1.9rem);position:relative;overflow:hidden;min-height:2em}
+.row .fill{position:absolute;inset:0 auto 0 0;opacity:.16;border-radius:14px}
+.grp.m .fill{background:var(--men)} .grp.w .fill{background:var(--women)}
+.row>*{position:relative}
+.row .rk{font-family:var(--disp);text-align:center;color:var(--mute)}
+.row .nm{font-family:var(--disp)}
+.row .sc{font-weight:900;font-variant-numeric:tabular-nums}
+.row.r1{background:var(--sun)} .row.r1 .rk{color:var(--ink)}
+.row.off .nm{opacity:.45}
+.ranktitle{font-family:var(--disp);font-size:clamp(1.4rem,2.6vw,2.8rem);text-align:center;margin-bottom:1.6vh}
+
+/* 문제 관리 */
+.mgr{max-width:980px;margin:0 auto;width:100%}
+.mgr .tools{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
+.mgr .tools p{color:var(--mute);font-size:.95rem;margin-right:auto}
+.qi{background:var(--card);border-radius:16px;padding:14px 16px;margin-bottom:10px;display:grid;grid-template-columns:2.4em 1fr auto;gap:12px;align-items:center}
+.qi .no{font-family:var(--disp);font-size:1.3rem;color:var(--main);text-align:center}
+.qi .tx{font-weight:700} .qi .meta{color:var(--mute);font-size:.9rem;margin-top:3px}
+.qi .acts{display:flex;gap:6px;flex-wrap:wrap}
+.qi.cur{box-shadow:0 0 0 3px var(--sun) inset}
+dialog{border:0;border-radius:22px;padding:22px;width:min(640px,94vw);margin:auto;color:var(--ink)}
+dialog::backdrop{background:rgba(39,32,77,.55)}
+dialog h2{font-family:var(--disp);font-weight:400;margin-bottom:14px}
+.f{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.f label{font-weight:700;font-size:.92rem}
+.f input[type=text],.f input[type=number],.f textarea,.f select{font:inherit;padding:.6em .8em;border:2px solid var(--line);border-radius:12px;width:100%;background:#fff;color:var(--ink)}
+.crow{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center;margin-bottom:6px}
+.crow input[type=radio]{width:1.3em;height:1.3em;accent-color:var(--ok)}
+.dbtn{display:flex;gap:10px;justify-content:flex-end}
+.hint{color:var(--mute);font-size:.85rem}
+
+/* ───────── 참가자(휴대폰) 화면 ───────── */
+#player{min-height:100%;display:flex;flex-direction:column;max-width:560px;margin:0 auto;padding:14px 16px 24px}
+.phead{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.phead .me{font-family:var(--disp);font-size:1.25rem;padding:.25em .9em;border-radius:999px;color:#fff;background:var(--main)}
+.phead .me.m{background:var(--men)} .phead .me.w{background:var(--women)}
+.phead .st{margin-left:auto;font-size:.8rem;color:var(--mute)}
+.phead .chg{font-size:.8rem;color:var(--mute);text-decoration:underline}
+.pbody{flex:1;display:flex;flex-direction:column;gap:14px}
+.pcard{background:var(--card);border-radius:22px;padding:22px 18px;text-align:center}
+.pcard h2{font-family:var(--disp);font-weight:400;font-size:1.6rem;line-height:1.3;text-wrap:balance}
+.pcard p{color:var(--mute);margin-top:8px}
+.pcard .big{font-family:var(--disp);font-size:3rem;line-height:1.2}
+.pcard.good{background:var(--ok);color:#fff} .pcard.badc{background:var(--bad);color:#fff}
+.pcard.good p,.pcard.badc p{color:#fff;opacity:.92}
+.center{flex:1;display:flex;flex-direction:column;justify-content:center;gap:14px}
+.pick h3{font-family:var(--disp);font-weight:400;font-size:1.2rem;margin:10px 0 8px}
+.pick h3.m{color:var(--men)} .pick h3.w{color:var(--women)}
+.pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.pgrid button{font-family:var(--disp);font-size:1.1rem;padding:.9em .2em;border-radius:14px;color:#fff}
+.pgrid.m button{background:var(--men)} .pgrid.w button{background:var(--women)}
+.ptimer{height:10px;background:#fff;border-radius:999px;overflow:hidden}
+.ptimer i{display:block;height:100%;background:var(--sun);width:100%}
+.pq{font-family:var(--disp);font-size:1.35rem;line-height:1.35;background:var(--card);border-radius:18px;padding:16px;text-align:center;text-wrap:balance}
+.popts{display:grid;gap:10px}
+.popts.two{grid-template-columns:1fr 1fr}
+.popt{color:#fff;font-family:var(--disp);font-size:1.3rem;border-radius:18px;padding:1em .8em;display:flex;gap:.6em;align-items:center;text-align:left;min-height:68px;opacity:.9}
+.popts.two .popt{justify-content:center;font-size:3rem;min-height:120px}
+.popt.sel{opacity:1;outline:5px solid var(--ink);outline-offset:-5px}
+.popts.has .popt:not(.sel){opacity:.4}
+.pin{font:inherit;font-size:1.4rem;font-weight:700;text-align:center;padding:.7em;border:3px solid var(--main);border-radius:16px;width:100%;background:#fff;color:var(--ink)}
+.submit{font-size:1.5rem;padding:.75em;width:100%}
+@media (max-width:900px){
+  .lobby,.reveal,.rank{grid-template-columns:1fr} #stage{overflow:auto}
+  .grp.w .rows,.grp.m .rows{grid-auto-flow:row;grid-template-rows:none;grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div id="host" class="hide">
+  <div class="top">
+    <h1>전도회 성경 퀴즈 대회</h1>
+    <span class="pill"><span class="dot" id="hdot"></span><span id="hconn">연결 중…</span></span>
+    <span class="pill" id="honline">접속 0 / 22</span>
+    <button class="tab on" id="tabPlay">대회 진행</button>
+    <button class="tab" id="tabMgr">문제 관리</button>
+  </div>
+  <div id="stage"></div>
+  <div class="bar" id="bar"></div>
+</div>
+
+<div id="player" class="hide">
+  <div class="phead" id="phead"></div>
+  <div class="pbody" id="pbody"></div>
+</div>
+
+<dialog id="dlg">
+  <form id="qform">
+    <h2 id="dlgTitle">문제 추가</h2>
+    <div class="f"><label for="fType">문제 유형</label>
+      <select id="fType"><option value="choice">객관식 (4지선다)</option><option value="ox">O / X</option><option value="short">주관식 (단답형)</option></select></div>
+    <div class="f"><label for="fText">문제</label><textarea id="fText" rows="3" required></textarea></div>
+    <div class="f" id="fChoiceBox"><label>보기 (정답인 보기 앞의 동그라미를 선택)</label>
+      <div class="crow"><input type="radio" name="fAns" id="fA0" value="0" checked><input type="text" id="fC0" placeholder="보기 1"></div>
+      <div class="crow"><input type="radio" name="fAns" id="fA1" value="1"><input type="text" id="fC1" placeholder="보기 2"></div>
+      <div class="crow"><input type="radio" name="fAns" id="fA2" value="2"><input type="text" id="fC2" placeholder="보기 3 (비워도 됨)"></div>
+      <div class="crow"><input type="radio" name="fAns" id="fA3" value="3"><input type="text" id="fC3" placeholder="보기 4 (비워도 됨)"></div>
+    </div>
+    <div class="f hide" id="fOxBox"><label for="fOx">정답</label><select id="fOx"><option value="O">O (맞다)</option><option value="X">X (틀리다)</option></select></div>
+    <div class="f hide" id="fShortBox"><label for="fShort">정답</label><input type="text" id="fShort" placeholder="예: 베들레헴">
+      <span class="hint">인정할 답이 여러 개면 쉼표로 구분하세요. 띄어쓰기는 무시하고 채점합니다.</span></div>
+    <div class="f"><label for="fTime">제한 시간 (초)</label><input type="number" id="fTime" min="5" max="300" value="20"></div>
+    <p class="hint" id="fErr" style="color:var(--bad);margin-bottom:10px"></p>
+    <div class="dbtn"><button type="button" class="btn ghost sm" id="fCancel">취소</button><button type="submit" class="btn sm">저장</button></div>
+  </form>
+</dialog>
+
+<script>/*__QR__*/</script>
+<script>/*__MQTT__*/</script>
+<script>
+"use strict";
+/* ───────── 공통 ───────── */
+const MEN=["베드로","여호수아","바울","요한","다니엘","디모데"];
+const WOMEN=["한나","드보라1","드보라2","마르다","요안나1","요안나2","마리아1","마리아2","다비다","루디아1","루디아2","에스더1","에스더2","수산나1","수산나2","수산나3"];
+const TEAMS=[...MEN.map((n,i)=>({id:"m"+(i+1),name:n,g:"m"})),...WOMEN.map((n,i)=>({id:"w"+(i+1),name:n,g:"w"}))];
+const TEAM=Object.fromEntries(TEAMS.map(t=>[t.id,t]));
+const GNAME={m:"남전도회",w:"여전도회"};
+const SELF=location.protocol.startsWith("http")?location.origin.replace(/^http/,"ws")+"/mqtt":null; // 같은 서버의 중계(Render)
+const BROKERS=[...(SELF?[SELF]:[]),"wss://broker.emqx.io:8084/mqtt","wss://broker.hivemq.com:8884/mqtt","wss://test.mosquitto.org:8081/mqtt"];
+const TEST_BROKER=new URLSearchParams(location.search).get("broker");
+const GRACE=800; // 마감 후 통신 지연 허용(ms)
+const SHAPES=["▲","◆","●","■"];
+const SAMPLE=[
+ {type:"choice",text:"하나님께서 천지를 창조하실 때 첫째 날에 만드신 것은 무엇일까요?",choices:["빛","하늘","땅과 바다","해와 달"],answer:0,time:20},
+ {type:"choice",text:"노아의 홍수 때 비는 땅에 며칠 동안 쏟아졌을까요?",choices:["7일","40일","100일","150일"],answer:1,time:20},
+ {type:"ox",text:"예수님의 열두 제자 중 마태는 세리였다.",answer:"O",time:15},
+ {type:"choice",text:"다윗이 골리앗을 쓰러뜨릴 때 사용한 것은 무엇일까요?",choices:["칼","창","물맷돌","활"],answer:2,time:20},
+ {type:"short",text:"예수님께서 태어나신 유대 땅의 마을 이름은 무엇일까요?",answers:["베들레헴"],time:25},
+ {type:"choice",text:"신약성경은 모두 몇 권일까요?",choices:["27권","29권","39권","66권"],answer:0,time:20},
+ {type:"ox",text:"요나는 큰 물고기 뱃속에서 밤낮 사흘을 지냈다.",answer:"O",time:15},
+ {type:"short",text:"모세의 뒤를 이어 이스라엘 백성을 가나안 땅으로 이끈 지도자는 누구일까요?",answers:["여호수아"],time:25}
+];
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const LS={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const rid=n=>Array.from({length:n},()=>"ABCDEFGHJKMNPQRSTUVWXYZ23456789"[Math.floor(Math.random()*31)]).join("");
+const norm=s=>String(s??"").toLowerCase().replace(/[\s.,!?·'"‘’“”()\-]/g,"");
+const sec=ms=>(ms/1000).toFixed(2)+"초";
+function answerText(q){return q.type==="choice"?q.choices[q.answer]:q.type==="ox"?q.answer:q.answers[0]}
+function shownAnswer(q,a){return q.type==="choice"?(q.choices[a]??""):String(a??"")}
+function ranked(g,scores){ // 같은 점수는 같은 등수
+  const arr=TEAMS.filter(t=>t.g===g).map(t=>({...t,score:scores[t.id]||0})).sort((a,b)=>b.score-a.score);
+  arr.forEach((t,i)=>{t.rank=i>0&&arr[i-1].score===t.score?arr[i-1].rank:i+1});
+  return arr;
+}
+function connect(url,id){return mqtt.connect(url,{clientId:id,clean:true,reconnectPeriod:2000,connectTimeout:7000,keepalive:20})}
+const hp=new URLSearchParams(location.hash.slice(1));
+if(hp.get("r")) startPlayer(hp.get("r").toUpperCase(),+hp.get("b")||0); else startHost();
+
+/* ───────── 진행자 ───────── */
+function startHost(){
+  $("#host").classList.remove("hide");
+  let Q=LS.get("bq_questions",null)||JSON.parse(JSON.stringify(SAMPLE));
+  let G=LS.get("bq_game",null)||fresh();
+  let tab="play", client=null, online=false, devices={}, lastOnlineKey="", resetArmed=0, editing=-1;
+  function fresh(){return {room:rid(5),b:-1,phase:"lobby",qi:-1,qid:0,startAt:0,dur:20,cur:null,answers:{},scores:{}}}
+  const save=()=>LS.set("bq_game",G);
+  const saveQ=()=>LS.set("bq_questions",Q);
+  const pre=()=>"bq26/"+G.room;
+  const onlineTeams=()=>{const now=Date.now(),s=new Set();for(const c in devices)if(now-devices[c].t<20000)s.add(devices[c].team);return s};
+  const joinUrl=()=>location.origin+location.pathname+location.search+"#r="+G.room+"&b="+G.b;
+
+  /* 연결: 공개 중계 서버를 차례로 시도 */
+  async function pickBroker(){
+    if(TEST_BROKER){G.b=0;return TEST_BROKER}
+    const order=G.b>=0?[G.b,...BROKERS.keys()].filter((v,i,a)=>a.indexOf(v)===i):[...BROKERS.keys()];
+    for(;;){
+      for(const i of order){
+        const ok=await new Promise(res=>{
+          const c=mqtt.connect(BROKERS[i],{clientId:"bqp_"+rid(8),reconnectPeriod:0,connectTimeout:6000});
+          const done=v=>{try{c.end(true)}catch(e){}res(v)};
+          c.on("connect",()=>done(true));c.on("error",()=>done(false));c.on("close",()=>res(false));
+          setTimeout(()=>done(false),7000);
+        });
+        if(ok){G.b=i;save();return BROKERS[i]}
+      }
+      $("#hconn").textContent="인터넷 연결을 확인하는 중…";
+      await new Promise(r=>setTimeout(r,2000));
+    }
+  }
+  pickBroker().then(url=>{
+    client=connect(url,"bqh_"+G.room+"_"+rid(6));
+    client.on("connect",()=>{online=true;conn();client.subscribe([pre()+"/hi",pre()+"/ans"],{qos:1});publish();render()});
+    client.on("close",()=>{online=false;conn()});
+    client.on("message",(topic,buf)=>{let m;try{m=JSON.parse(buf.toString())}catch(e){return}
+      if(!m||!TEAM[m.team]||typeof m.cid!=="string")return;
+      devices[m.cid.slice(0,20)]={team:m.team,t:Date.now()};
+      if(topic.endsWith("/ans"))onAnswer(m);
+      checkOnline();
+    });
+  });
+  function conn(){$("#hdot").classList.toggle("on",online);$("#hconn").textContent=online?"연결됨":"연결 중…"}
+  function checkOnline(){const s=onlineTeams(),k=[...s].sort().join();$("#honline").textContent="접속 "+s.size+" / "+TEAMS.length;
+    if(k!==lastOnlineKey){lastOnlineKey=k;if(tab==="play"&&(G.phase==="lobby"||G.phase==="question"))render()}}
+
+  function publish(){
+    if(!client||!online)return;
+    const s={ph:G.phase,qid:G.qid,n:G.qi+1,total:Q.length,sub:Object.keys(G.answers)};
+    if(G.cur&&(G.phase==="question"||G.phase==="reveal")){
+      s.q={t:G.cur.type,x:G.cur.text,c:G.cur.choices||null};s.dur=G.dur;s.age=Date.now()-G.startAt;
+    }
+    if(G.phase!=="lobby"&&G.phase!=="question"){
+      s.sc=G.scores;
+      if(G.cur){s.ans=answerText(G.cur);s.res={};for(const t in G.answers){const a=G.answers[t];s.res[t]={ok:a.ok,pts:a.pts,e:a.e}}}
+    }
+    client.publish(pre()+"/state",JSON.stringify(s),{qos:0,retain:true});
+  }
+  function check(q,a){return q.type==="choice"?a===q.answer:q.type==="ox"?a===q.answer:q.answers.some(x=>norm(x)===norm(a)&&norm(a)!=="")}
+  function onAnswer(m){
+    if(G.phase!=="question"||m.q!==G.qid||G.answers[m.team])return;
+    const arrival=Date.now()-G.startAt;
+    let e=(typeof m.e==="number"&&m.e>0&&m.e<=arrival+250)?m.e:arrival;
+    if(e>G.dur*1000+GRACE)return;
+    e=Math.min(e,G.dur*1000);
+    const a=G.cur.type==="choice"?(Number.isInteger(m.a)?m.a:-1):String(m.a??"").slice(0,40);
+    const ok=check(G.cur,a);
+    G.answers[m.team]={a,e:Math.round(e),ok,pts:ok?500+Math.round(500*(1-e/(G.dur*1000))):0};
+    save();publish();if(tab==="play")render();
+    const on=onlineTeams();
+    if(on.size>0&&[...on].every(t=>G.answers[t]))setTimeout(()=>{if(G.phase==="question")closeQ()},700);
+  }
+  function startQ(i){
+    if(i>=Q.length)return;
+    G.qi=i;G.qid++;G.cur=JSON.parse(JSON.stringify(Q[i]));G.answers={};G.dur=G.cur.time||20;G.startAt=Date.now();G.phase="question";
+    save();publish();render();
+  }
+  function closeQ(){
+    if(G.phase!=="question")return;
+    for(const t in G.answers)G.scores[t]=(G.scores[t]||0)+G.answers[t].pts;
+    G.phase="reveal";save();publish();render();
+  }
+  function go(phase){G.phase=phase;save();publish();render()}
+  function resetAll(){const b=G.b;G=fresh();G.b=b;devices={};save();location.reload()}
+
+  setInterval(()=>{
+    if(G.phase==="question"){
+      const rem=G.dur*1000-(Date.now()-G.startAt);
+      const bar=$("#tfill"),num=$("#tnum");
+      if(bar)bar.style.width=Math.max(0,rem/(G.dur*10))+"%";
+      if(num)num.textContent=Math.max(0,Math.ceil(rem/1000));
+      if(rem<=-GRACE)closeQ();
+    }
+  },100);
+  setInterval(()=>{publish();checkOnline()},2500);
+  if(SELF)setInterval(()=>{fetch("health",{cache:"no-store"}).catch(()=>{})},240000); // 무료 서버가 잠들지 않게
+
+  /* 화면 그리기 */
+  function subsHtml(){
+    const list=Object.entries(G.answers).sort((a,b)=>a[1].e-b[1].e);
+    return `<div class="subs"><b>제출 ${list.length} / 접속 ${onlineTeams().size}</b>`+list.map(([t,a])=>`<span class="sub ${TEAM[t].g}">${esc(TEAM[t].name)}<small>${sec(a.e)}</small></span>`).join("")+`</div>`;
+  }
+  function optsHtml(q,reveal){
+    if(q.type==="short")return reveal?`<div class="answer-big">정답 · ${esc(answerText(q))}</div>`:`<div class="shortnote">휴대폰에 답을 직접 입력해 주세요</div>`;
+    const items=q.type==="ox"?["O","X"]:q.choices;
+    return `<div class="opts">`+items.map((c,i)=>{
+      const val=q.type==="ox"?c:i, right=val===q.answer;
+      const cnt=reveal?Object.values(G.answers).filter(a=>a.a===val).length:null;
+      return `<div class="opt c${q.type==="ox"?(i?0:1):i} ${reveal?(right?"right":"dim"):""}"><span class="sh">${q.type==="ox"?"":SHAPES[i]}</span><span>${esc(c)}</span>${reveal?`<span class="cnt">${cnt}곳</span>`:""}</div>`;
+    }).join("")+`</div>`;
+  }
+  function groupChips(g){
+    const on=onlineTeams();
+    return `<div class="grp ${g}"><h3>${GNAME[g]} <small>${TEAMS.filter(t=>t.g===g&&on.has(t.id)).length} / ${TEAMS.filter(t=>t.g===g).length} 접속</small></h3><div class="chips">`+
+      TEAMS.filter(t=>t.g===g).map(t=>`<div class="chip ${on.has(t.id)?"on":""}">${esc(t.name)}</div>`).join("")+`</div></div>`;
+  }
+  function rankHtml(title){
+    const on=onlineTeams(), max=Math.max(1,...Object.values(G.scores));
+    const col=g=>`<div class="grp ${g}"><h3>${GNAME[g]}</h3><div class="rows">`+ranked(g,G.scores).map(t=>
+      `<div class="row ${t.rank===1&&t.score>0?"r1":""} ${on.has(t.id)||t.score>0?"":"off"}"><span class="fill" style="width:${t.score/max*100}%"></span><span class="rk">${t.rank}</span><span class="nm">${esc(t.name)}</span><span class="sc">${t.score.toLocaleString()}</span></div>`).join("")+`</div></div>`;
+    return `<div class="ranktitle">${title}</div><div class="rank">${col("m")}${col("w")}</div>`;
+  }
+  function qrSvg(text){const q=qrcode(0,"M");q.addData(text);q.make();return q.createSvgTag({cellSize:4,margin:2,scalable:true})}
+
+  function render(){
+    $("#tabPlay").classList.toggle("on",tab==="play");$("#tabMgr").classList.toggle("on",tab==="mgr");
+    const st=$("#stage"),bar=$("#bar");
+    if(tab==="mgr")return renderMgr();
+    const q=G.cur, last=G.qi>=Q.length-1;
+    if(G.phase==="lobby"){
+      const local=location.protocol==="file:";
+      st.innerHTML=`<div class="lobby"><div class="join"><h2>휴대폰으로 QR을 찍어 주세요</h2>`+
+        (G.b<0?`<p class="hint">연결 준비 중…</p>`:`<div class="qr">${qrSvg(joinUrl())}</div><div class="link">${esc(joinUrl())}</div>`)+
+        `<div class="code">${esc(G.room)}</div>`+
+        (local?`<div class="warnbox">지금은 내 컴퓨터의 파일로 열려 있어 휴대폰이 접속할 수 없습니다. 이 파일을 웹에 올린 주소로 열어 주세요.</div>`:"")+
+        `</div><div class="teams">${groupChips("m")}${groupChips("w")}</div></div>`;
+      bar.innerHTML=`<span class="info">문제 ${Q.length}개 준비됨 · 전도회가 접속하면 색이 켜집니다</span><button class="btn" id="bNext" ${Q.length?"":"disabled"}>대회 시작 · 1번 문제</button>`;
+      $("#bNext").onclick=()=>startQ(0);
+    }else if(G.phase==="question"){
+      st.innerHTML=`<div class="qhead"><span class="qno">문제 ${G.qi+1} / ${Q.length}</span><div class="tbar"><i id="tfill"></i></div><span class="tnum" id="tnum">${G.dur}</span></div>
+        <div class="qtext">${esc(q.text)}</div>${optsHtml(q,false)}${subsHtml()}`;
+      bar.innerHTML=`<span class="info">모든 접속 전도회가 제출하거나 시간이 끝나면 자동으로 마감됩니다</span><button class="btn" id="bClose">지금 마감</button>`;
+      $("#bClose").onclick=closeQ;
+    }else if(G.phase==="reveal"){
+      const list=Object.entries(G.answers).sort((a,b)=>(b[1].ok-a[1].ok)||(a[1].e-b[1].e));
+      const fast=list.find(([,a])=>a.ok);
+      const none=TEAMS.filter(t=>!G.answers[t.id]&&onlineTeams().has(t.id));
+      let n=0;
+      st.innerHTML=`<div class="reveal"><div class="left"><div class="qhead"><span class="qno">문제 ${G.qi+1} / ${Q.length}</span></div>
+        <div class="qtext small">${esc(q.text)}</div>${optsHtml(q,true)}</div>
+        <div class="right-col"><div class="fast">`+(fast?`<div class="lab">가장 빠른 정답</div><div class="who">${esc(TEAM[fast[0]].name)}</div><div class="how">${sec(fast[1].e)} · ${esc(shownAnswer(q,fast[1].a))}</div>`:`<div class="lab">이번 문제</div><div class="who">정답 없음</div>`)+`</div>
+        <div class="reslist">`+list.map(([t,a])=>`<div class="res ${a.ok?"":"x"}"><span class="n">${a.ok?++n:"✕"}</span><span class="nm ${TEAM[t].g}">${esc(TEAM[t].name)}<small>${esc(shownAnswer(q,a.a))}</small></span><span class="tm">${sec(a.e)}</span><span class="pt">${a.ok?"+"+a.pts:"오답"}</span></div>`).join("")+
+        none.map(t=>`<div class="res x"><span class="n">–</span><span class="nm ${t.g}">${esc(t.name)}</span><span class="tm"></span><span class="pt">미제출</span></div>`).join("")+
+        (list.length+none.length?"":`<p class="hint" style="padding:1em">제출한 전도회가 없습니다.</p>`)+`</div></div></div>`;
+      bar.innerHTML=`<span class="info">정답 ${list.filter(([,a])=>a.ok).length}곳 · 오답 ${list.filter(([,a])=>!a.ok).length}곳</span><button class="btn ghost" id="bRank">순위 보기</button>`+(last?"":`<button class="btn" id="bNext">다음 문제</button>`);
+      $("#bRank").onclick=()=>go(last?"final":"rank");
+      if(!last)$("#bNext").onclick=()=>startQ(G.qi+1);
+    }else{
+      const fin=G.phase==="final";
+      st.innerHTML=rankHtml(fin?"최종 순위":`${G.qi+1}번 문제까지의 순위`);
+      bar.innerHTML=`<span class="info">${fin?"모든 문제가 끝났습니다. 수고하셨습니다!":"점수 = 정답 500점 + 빠르기 점수(최대 500점)"}</span>`+
+        `<button class="btn warn sm" id="bReset">${resetArmed?"한 번 더 누르면 모든 점수가 지워집니다":"새 대회 시작"}</button>`+
+        (fin?"":`<button class="btn" id="bNext">다음 문제</button>`);
+      if(!fin)$("#bNext").onclick=()=>startQ(G.qi+1);
+      $("#bReset").onclick=()=>{if(resetArmed&&Date.now()-resetArmed<4000)return resetAll();resetArmed=Date.now();render();setTimeout(()=>{resetArmed=0;if(G.phase==="rank"||G.phase==="final")render()},4000)};
+    }
+  }
+
+  /* 문제 관리 */
+  function renderMgr(){
+    const tn={choice:"객관식",ox:"O/X",short:"주관식"};
+    $("#stage").innerHTML=`<div class="mgr"><div class="tools"><p>문제는 이 컴퓨터의 브라우저에 저장됩니다. 대회 중에도 아직 내지 않은 문제는 고칠 수 있습니다.</p>
+      <button class="btn sm" id="qAdd">문제 추가</button><button class="btn ghost sm" id="qSample">예시 문제로 되돌리기</button></div>`+
+      Q.map((q,i)=>`<div class="qi ${i===G.qi&&G.phase!=="lobby"?"cur":""}"><span class="no">${i+1}</span><div><div class="tx">${esc(q.text)}</div><div class="meta">${tn[q.type]} · 정답 ${esc(q.type==="short"?q.answers.join(", "):answerText(q))} · ${q.time||20}초</div></div>
+        <div class="acts"><button class="btn ghost sm" data-a="up" data-i="${i}" ${i?"":"disabled"} aria-label="위로">↑</button><button class="btn ghost sm" data-a="dn" data-i="${i}" ${i<Q.length-1?"":"disabled"} aria-label="아래로">↓</button><button class="btn ghost sm" data-a="ed" data-i="${i}">수정</button><button class="btn warn sm" data-a="rm" data-i="${i}">삭제</button></div></div>`).join("")+
+      (Q.length?"":`<p class="hint">문제가 없습니다. 문제 추가를 눌러 주세요.</p>`)+`</div>`;
+    $("#bar").innerHTML=`<span class="info">문제 ${Q.length}개</span><button class="btn" id="bBack">대회 진행 화면으로</button>`;
+    $("#bBack").onclick=()=>{tab="play";render()};
+    $("#qAdd").onclick=()=>openDlg(-1);
+    $("#qSample").onclick=()=>{Q=JSON.parse(JSON.stringify(SAMPLE));saveQ();render()};
+    $("#stage").querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>{
+      const i=+b.dataset.i,a=b.dataset.a;
+      if(a==="ed")return openDlg(i);
+      if(a==="rm"){Q.splice(i,1);if(G.qi>=i&&G.qi>=0&&G.phase!=="lobby"){G.qi--;save()}}
+      if(a==="up"&&i>0)[Q[i-1],Q[i]]=[Q[i],Q[i-1]];
+      if(a==="dn"&&i<Q.length-1)[Q[i+1],Q[i]]=[Q[i],Q[i+1]];
+      saveQ();render();
+    });
+  }
+  function typeBoxes(){const t=$("#fType").value;$("#fChoiceBox").classList.toggle("hide",t!=="choice");$("#fOxBox").classList.toggle("hide",t!=="ox");$("#fShortBox").classList.toggle("hide",t!=="short")}
+  function openDlg(i){
+    editing=i;const q=i>=0?Q[i]:{type:"choice",text:"",choices:["","","",""],answer:0,time:20};
+    $("#dlgTitle").textContent=i>=0?(i+1)+"번 문제 수정":"문제 추가";
+    $("#fType").value=q.type;$("#fText").value=q.text;$("#fTime").value=q.time||20;$("#fErr").textContent="";
+    for(let k=0;k<4;k++){$("#fC"+k).value=q.type==="choice"?(q.choices[k]||""):"";$("#fA"+k).checked=q.type==="choice"?q.answer===k:k===0}
+    $("#fOx").value=q.type==="ox"?q.answer:"O";$("#fShort").value=q.type==="short"?q.answers.join(", "):"";
+    typeBoxes();$("#dlg").showModal();
+  }
+  $("#fType").onchange=typeBoxes;
+  $("#fCancel").onclick=()=>$("#dlg").close();
+  $("#qform").onsubmit=ev=>{
+    ev.preventDefault();
+    const type=$("#fType").value,text=$("#fText").value.trim(),time=Math.min(300,Math.max(5,+$("#fTime").value||20));
+    const err=m=>{$("#fErr").textContent=m};
+    if(!text)return err("문제를 입력해 주세요.");
+    let q={type,text,time};
+    if(type==="choice"){
+      const raw=[0,1,2,3].map(k=>$("#fC"+k).value.trim()),sel=[0,1,2,3].find(k=>$("#fA"+k).checked);
+      if(!raw[sel])return err("정답으로 선택한 보기가 비어 있습니다.");
+      const keep=raw.map((c,k)=>({c,k})).filter(o=>o.c);
+      if(keep.length<2)return err("보기를 2개 이상 입력해 주세요.");
+      q.choices=keep.map(o=>o.c);q.answer=keep.findIndex(o=>o.k===sel);
+    }else if(type==="ox")q.answer=$("#fOx").value;
+    else{q.answers=$("#fShort").value.split(",").map(s=>s.trim()).filter(Boolean);if(!q.answers.length)return err("정답을 입력해 주세요.")}
+    if(editing>=0)Q[editing]=q;else Q.push(q);
+    saveQ();$("#dlg").close();render();
+  };
+  $("#tabPlay").onclick=()=>{tab="play";render()};
+  $("#tabMgr").onclick=()=>{tab="mgr";render()};
+  render();
+}
+
+/* ───────── 참가자 ───────── */
+function startPlayer(room,b){
+  $("#player").classList.remove("hide");
+  const pre="bq26/"+room, cid=rid(10);
+  let team=LS.get("bq_team_"+room,null); if(!TEAM[team])team=null;
+  let S=null, online=false, t0=0, curQ=-1, sel=null, sent=null, lastKey="", gotState=false;
+  const client=connect(TEST_BROKER||BROKERS[b]||BROKERS[0],"bqu_"+room+"_"+cid);
+  client.on("connect",()=>{online=true;client.subscribe(pre+"/state",{qos:0});hi();render(true)});
+  client.on("close",()=>{online=false;render(true)});
+  client.on("message",(t,buf)=>{let s;try{s=JSON.parse(buf.toString())}catch(e){return}
+    if(!s||typeof s.ph!=="string")return;
+    if(s.ph==="question"&&s.qid!==curQ){curQ=s.qid;t0=performance.now()-(s.age||0);sel=null;sent=null}
+    S=s;gotState=true;render();
+  });
+  const pub=(topic,o)=>{if(online)client.publish(pre+"/"+topic,JSON.stringify(o),{qos:1})};
+  const hi=()=>{if(team)pub("hi",{team,cid})};
+  setInterval(hi,6000);
+  setInterval(()=>{ // 타이머 + 제출 재전송
+    if(S&&S.ph==="question"){
+      const f=$("#ptf");if(f)f.style.width=Math.max(0,100-(performance.now()-t0)/(S.dur*10))+"%";
+      if(sent&&sent.q===S.qid&&!(S.sub||[]).includes(team)&&Date.now()-sent.at>1500){sent.at=Date.now();pub("ans",{team,cid,q:sent.q,a:sent.a,e:sent.e})}
+    }
+  },200);
+  function submit(a){
+    if(!S||S.ph!=="question"||sent)return;
+    const e=Math.round(performance.now()-t0);
+    sent={q:S.qid,a,e,at:Date.now()};pub("ans",{team,cid,q:S.qid,a,e});render(true);
+  }
+  function head(){
+    const t=TEAM[team];
+    $("#phead").innerHTML=(t?`<span class="me ${t.g}">${esc(t.name)}</span><button class="chg" id="pchg">바꾸기</button>`:`<span class="me">성경 퀴즈 대회</span>`)+`<span class="st"><span class="dot ${online?"on":""}"></span>${online?"연결됨":"연결 중"}</span>`;
+    const c=$("#pchg");if(c)c.onclick=()=>{team=null;LS.set("bq_team_"+room,null);render(true)};
+  }
+  function myRank(){if(!S||!S.sc)return null;return ranked(TEAM[team].g,S.sc).find(t=>t.id===team)}
+  function render(force){
+    const inSub=!!(S&&team&&(S.sub||[]).includes(team));
+    const key=[team,online,S&&S.ph,S&&S.qid,inSub,!!sent].join("|");
+    if(!force&&key===lastKey)return; lastKey=key;
+    head();
+    const el=$("#pbody");
+    if(!team){
+      el.innerHTML=`<div class="pick"><div class="pcard"><h2>우리 전도회를 골라 주세요</h2></div>`+["m","w"].map(g=>`<h3 class="${g}">${GNAME[g]}</h3><div class="pgrid ${g}">`+TEAMS.filter(t=>t.g===g).map(t=>`<button data-t="${t.id}">${esc(t.name)}</button>`).join("")+`</div>`).join("")+`</div>`;
+      el.querySelectorAll("[data-t]").forEach(bn=>bn.onclick=()=>{team=bn.dataset.t;LS.set("bq_team_"+room,team);hi();render(true)});
+      return;
+    }
+    const T=TEAM[team];
+    if(!gotState){el.innerHTML=`<div class="center"><div class="pcard"><h2>진행자 화면에 연결하는 중…</h2><p>잠시만 기다려 주세요.</p></div></div>`;return}
+    if(S.ph==="lobby"){el.innerHTML=`<div class="center"><div class="pcard"><div class="big">${esc(T.name)}</div><h2>접속 완료!</h2><p>앞 화면에 문제가 나오면 이 화면에서 답을 고르고 제출해 주세요.</p></div></div>`;return}
+    if(S.ph==="question"){
+      if(sent||inSub){
+        el.innerHTML=`<div class="center"><div class="pcard"><h2>제출 완료!</h2>`+(sent?`<div class="big">${sec(sent.e)}</div>`:`<p>우리 전도회의 다른 휴대폰에서 이미 제출했습니다.</p>`)+`<p>${inSub?"앞 화면에서 결과를 확인해 주세요.":"보내는 중…"}</p></div></div>`;return;
+      }
+      const q=S.q;let body;
+      if(q.t==="short")body=`<input class="pin" id="pin" type="text" maxlength="40" autocomplete="off" placeholder="정답을 입력하세요">`;
+      else{const items=q.t==="ox"?["O","X"]:q.c;
+        body=`<div class="popts ${q.t==="ox"?"two":""}" id="popts">`+items.map((c,i)=>`<button class="popt c${q.t==="ox"?(i?0:1):i}" data-v="${q.t==="ox"?c:i}">${q.t==="ox"?"":`<span>${SHAPES[i]}</span>`}<span>${esc(c)}</span></button>`).join("")+`</div>`}
+      el.innerHTML=`<div class="ptimer"><i id="ptf"></i></div><div class="pq">${S.n}. ${esc(q.x)}</div>${body}<button class="btn submit" id="psub" ${q.t==="short"?"":"disabled"}>제출</button>`;
+      el.querySelectorAll(".popt").forEach(bn=>bn.onclick=()=>{sel=q.t==="ox"?bn.dataset.v:+bn.dataset.v;$("#popts").classList.add("has");el.querySelectorAll(".popt").forEach(x=>x.classList.toggle("sel",x===bn));$("#psub").disabled=false});
+      $("#psub").onclick=()=>{if(q.t==="short"){const v=$("#pin").value.trim();if(!v){$("#pin").focus();return}submit(v)}else if(sel!==null)submit(sel)};
+      const pin=$("#pin");if(pin)pin.onkeydown=e=>{if(e.key==="Enter")$("#psub").click()};
+      return;
+    }
+    const r=myRank(), rk=r?`<p>${GNAME[T.g]} ${r.rank}위 · ${r.score.toLocaleString()}점</p>`:"";
+    if(S.ph==="reveal"){
+      const m=S.res&&S.res[team];
+      el.innerHTML=`<div class="center">`+(m?(m.ok?`<div class="pcard good"><div class="big">정답!</div><h2>+${m.pts}점</h2><p>${sec(m.e)} 만에 제출</p></div>`:`<div class="pcard badc"><div class="big">아쉬워요</div><p>정답은 ${esc(S.ans)}</p></div>`):`<div class="pcard"><h2>제출하지 못했어요</h2><p>정답은 ${esc(S.ans)}</p></div>`)+`<div class="pcard"><h2>${esc(T.name)}</h2>${rk}</div></div>`;return;
+    }
+    el.innerHTML=`<div class="center"><div class="pcard"><p>${S.ph==="final"?"최종 순위":"현재 순위"}</p><div class="big">${r?r.rank+"위":"-"}</div><h2>${esc(T.name)} · ${r?r.score.toLocaleString():0}점</h2><p>${S.ph==="final"?"수고하셨습니다!":"다음 문제를 기다려 주세요."}</p></div></div>`;
+  }
+  render(true);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "name": "jeondohoe-bible-quiz",
+  "version": "1.0.0",
+  "private": true,
+  "description": "전도회 성경 퀴즈 대회 (실시간)",
+  "main": "server.js",
+  "scripts": { "start": "node server.js", "build": "node build.js" },
+  "engines": { "node": ">=18" },
+  "dependencies": { "aedes": "0.51.3", "ws": "^8.18.0" },
+  "devDependencies": { "mqtt": "5.10.1", "qrcode-generator": "1.4.4" }
+}

@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: jeondohoe-bible-quiz
+    runtime: node
+    plan: free
+    branch: jeondohoe-quiz
+    buildCommand: npm install --omit=dev
+    startCommand: node server.js
+    healthCheckPath: /health
